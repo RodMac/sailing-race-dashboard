@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: sailing-race-dashboard
+    env: node
+    buildCommand: ""
+    startCommand: node server.js
+    plan: free
