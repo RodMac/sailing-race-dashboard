@@ -1301,89 +1301,49 @@ setInterval(fetchForecastChart, 30 * 60 * 1000);
 fetchWeather();
 
 // ============================================================
-// TIDES — Simplified harmonic approximation for Waitemata
+// TIDES — live Auckland tide table (server-side scraped from tide-forecast.com)
 // ============================================================
-function computeTides() {
-  // Tidal constituents for Auckland Waitemata Harbour
-  // Amplitudes from LINZ/NIWA gauge data. Phase = V₀(J2000) - g_Auckland,
-  // where g is the Greenwich phase lag for each constituent.
-  // M2: amp=1.007m g=338°  S2: amp=0.252m g=350°  N2: amp=0.180m g=313°
-  // K1: amp=0.084m g=199°  O1: amp=0.072m g=182°  K2: amp=0.070m g=347°
-  const constituents = [
-    { name: 'M2',  amp: 1.007, speed: 28.9841042, phase: 146 },
-    { name: 'S2',  amp: 0.252, speed: 30.0000000, phase: 10  },
-    { name: 'N2',  amp: 0.180, speed: 28.4397295, phase: 36  },
-    { name: 'K1',  amp: 0.084, speed: 15.0410686, phase: 81  },
-    { name: 'O1',  amp: 0.072, speed: 13.9430356, phase: 22  },
-    { name: 'K2',  amp: 0.070, speed: 30.0821372, phase: 214 },
-  ];
-  const MSL = 1.376; // Mean Sea Level above Chart Datum (Lowest Astronomical Tide), Auckland
-
-  function tideHeight(dateMs) {
-    const epochMs = Date.UTC(2000, 0, 1, 0, 0, 0);
-    const hoursFromEpoch = (dateMs - epochMs) / 3600000;
-    let h = MSL;
-    for (const c of constituents) {
-      const arg = (c.speed * hoursFromEpoch + c.phase) * Math.PI / 180;
-      h += c.amp * Math.cos(arg);
-    }
-    return h;
-  }
-
-  const nowMs = Date.now();
-  const stepMs = 5 * 60 * 1000;
-  const allExtrema = [];
-
-  let prevH = tideHeight(nowMs - 12 * 3600 * 1000 - stepMs);
-  let curH  = tideHeight(nowMs - 12 * 3600 * 1000);
-  for (let t = nowMs - 12 * 3600 * 1000; t < nowMs + 48 * 3600 * 1000; t += stepMs) {
-    const nextH = tideHeight(t + stepMs);
-    if (curH > prevH && curH > nextH) {
-      allExtrema.push({ type: 'High', time: t, height: curH, past: t < nowMs });
-    } else if (curH < prevH && curH < nextH) {
-      allExtrema.push({ type: 'Low',  time: t, height: curH, past: t < nowMs });
-    }
-    prevH = curH;
-    curH  = nextH;
-  }
-
-  const pastEvents   = allExtrema.filter(e => e.past).slice(-1);
-  const futureEvents = allExtrema.filter(e => !e.past).slice(0, 4);
-  const extrema      = [...pastEvents, ...futureEvents];
-
-  const h0 = tideHeight(nowMs);
-  const h1 = tideHeight(nowMs + 30 * 60 * 1000);
-  const rising = h1 > h0;
-  const currentH = h0.toFixed(2);
-
+async function computeTides() {
   const tideList = document.getElementById('tide-list');
-  tideList.innerHTML = '';
-  for (const e of extrema) {
-    const d = new Date(e.time);
-    const timeStr = d.toLocaleTimeString('en-NZ', {
-      timeZone: 'Pacific/Auckland', hour: '2-digit', minute: '2-digit'
-    });
-    const dateStr = d.toLocaleDateString('en-NZ', {
-      timeZone: 'Pacific/Auckland', weekday: 'short', month: 'short', day: 'numeric'
-    });
-    const item = document.createElement('div');
-    item.className = 'tide-item';
-    if (e.past) item.style.opacity = '0.55';
-    item.innerHTML = `
-      <span class="tide-type ${e.type === 'High' ? 'tide-high' : 'tide-low'}">${e.type === 'High' ? 'HW' : 'LW'}</span>
-      <span class="tide-time">${e.past ? '✓ ' : ''}${dateStr} ${timeStr}</span>
-      <span class="tide-height">${e.height.toFixed(2)}m</span>
-    `;
-    tideList.appendChild(item);
-  }
+  try {
+    const resp = await fetch('/api/tides');
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    if (!data.events || !data.events.length) throw new Error('No tide events returned');
 
-  document.getElementById('tide-arrow').textContent = rising ? '↑' : '↓';
-  document.getElementById('tide-state-text').textContent =
-    `${rising ? 'Rising' : 'Falling'} — current height ≈ ${currentH}m`;
+    tideList.innerHTML = '';
+    for (const e of data.events) {
+      const d = new Date(`${e.date}T${e.time24}:00`);
+      const dateStr = d.toLocaleDateString('en-NZ', {
+        timeZone: 'Pacific/Auckland', weekday: 'short', month: 'short', day: 'numeric'
+      });
+      const item = document.createElement('div');
+      item.className = 'tide-item';
+      if (e.past) item.style.opacity = '0.55';
+      item.innerHTML = `
+        <span class="tide-type ${e.type === 'High' ? 'tide-high' : 'tide-low'}">${e.type === 'High' ? 'HW' : 'LW'}</span>
+        <span class="tide-time">${e.past ? '✓ ' : ''}${dateStr} ${e.time12}</span>
+        <span class="tide-height">${e.height.toFixed(2)}m</span>
+      `;
+      tideList.appendChild(item);
+    }
+
+    const next = data.next;
+    const rising = next && next.type === 'High';
+    document.getElementById('tide-arrow').textContent = rising ? '↑' : '↓';
+    document.getElementById('tide-state-text').textContent = next
+      ? `${rising ? 'Rising to' : 'Falling to'} next ${next.type.toLowerCase()} at ${next.time12}`
+      : 'Tide data loaded';
+  } catch (err) {
+    console.error('Tide fetch failed', err);
+    document.getElementById('tide-arrow').textContent = '•';
+    document.getElementById('tide-state-text').textContent = 'Tide data unavailable';
+    tideList.innerHTML = '<div style="opacity:0.7;font-size:0.8rem;">Could not load live tide data.</div>';
+  }
 }
 
 computeTides();
-setInterval(computeTides, 5 * 60 * 1000);
+setInterval(computeTides, 15 * 60 * 1000);
 
 // ============================================================
 // ROUNDING HELPERS
