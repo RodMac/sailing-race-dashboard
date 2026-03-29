@@ -1304,14 +1304,20 @@ fetchWeather();
 // TIDES — Simplified harmonic approximation for Waitemata
 // ============================================================
 function computeTides() {
+  // Tidal constituents for Auckland Waitemata Harbour
+  // Amplitudes from LINZ/NIWA gauge data. Phase = V₀(J2000) - g_Auckland,
+  // where g is the Greenwich phase lag for each constituent.
+  // M2: amp=1.007m g=338°  S2: amp=0.252m g=350°  N2: amp=0.180m g=313°
+  // K1: amp=0.084m g=199°  O1: amp=0.072m g=182°  K2: amp=0.070m g=347°
   const constituents = [
-    { name: 'M2',  amp: 1.40, speed: 28.9841042, phase: 185 },
-    { name: 'S2',  amp: 0.48, speed: 30.0000000, phase: 195 },
-    { name: 'N2',  amp: 0.28, speed: 28.4397295, phase: 170 },
-    { name: 'K1',  amp: 0.12, speed: 15.0410686, phase: 210 },
-    { name: 'O1',  amp: 0.09, speed: 13.9430356, phase: 220 },
+    { name: 'M2',  amp: 1.007, speed: 28.9841042, phase: 146 },
+    { name: 'S2',  amp: 0.252, speed: 30.0000000, phase: 10  },
+    { name: 'N2',  amp: 0.180, speed: 28.4397295, phase: 36  },
+    { name: 'K1',  amp: 0.084, speed: 15.0410686, phase: 81  },
+    { name: 'O1',  amp: 0.072, speed: 13.9430356, phase: 22  },
+    { name: 'K2',  amp: 0.070, speed: 30.0821372, phase: 214 },
   ];
-  const MSL = 1.35;
+  const MSL = 1.376; // Mean Sea Level above Chart Datum (Lowest Astronomical Tide), Auckland
 
   function tideHeight(dateMs) {
     const epochMs = Date.UTC(2000, 0, 1, 0, 0, 0);
