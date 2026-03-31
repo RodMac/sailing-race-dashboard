@@ -2,7 +2,8 @@
 
 This app is now shaped for **Cloudflare Pages + Pages Functions**:
 
-- `index.html` = static frontend
+- `index.html` = root landing page
+- `sailing/index.html` = sailing dashboard frontend
 - `functions/api/weathercloud.js` = Weathercloud proxy
 - `functions/api/weatherlink.js` = WeatherLink proxy
 - `functions/api/tides.js` = tide scraper/parser
