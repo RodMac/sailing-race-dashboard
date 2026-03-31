@@ -2,11 +2,16 @@
   "name": "sailing-race-dashboard",
   "version": "1.0.0",
   "description": "Club sailing race dashboard — live conditions, tides, course map",
-  "main": "server.js",
+  "private": true,
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "wrangler pages dev .",
+    "deploy": "wrangler pages deploy ."
   },
   "engines": {
     "node": ">=18"
+  },
+  "devDependencies": {
+    "wrangler": "^4.9.1"
   }
 }

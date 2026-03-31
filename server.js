@@ -93,13 +93,15 @@ function parseTideForecastHtml(html) {
 
   const events = [];
 
-  // First day is split across AM/PM columns
-  events.push(...extractEvents(highCells[0] || '', 'High', dates[0]));
-  events.push(...extractEvents(highCells[2] || '', 'High', dates[0]));
-  events.push(...extractEvents(lowCells[1] || '', 'Low', dates[0]));
+  // First day: AM high=cell[1], PM high=cell[3], AM low=cell[2] (may be empty if passed), PM low=cell[2] or [3]
+  // tide-forecast.com splits today into 4 columns: [0]=label, [1]=AM high, [2]=AM low, [3]=PM high, then PM low is also in [3] area
+  // Based on observed structure: high[1]=AM high, high[3]=PM high; low[2]=PM low (AM low often past)
+  events.push(...extractEvents(highCells[1] || '', 'High', dates[0]));
+  events.push(...extractEvents(highCells[3] || '', 'High', dates[0]));
+  events.push(...extractEvents(lowCells[2] || '', 'Low', dates[0]));
   events.push(...extractEvents(lowCells[3] || '', 'Low', dates[0]));
 
-  // Following days are one cell per day
+  // Following days are one cell per day (starting at index 4)
   for (let i = 1; i < dates.length; i++) {
     const cellIndex = i + 3;
     events.push(...extractEvents(highCells[cellIndex] || '', 'High', dates[i]));

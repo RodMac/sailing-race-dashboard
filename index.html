@@ -889,21 +889,20 @@ const SERIES_RUM = {
 
 // Winter General Course Sheet 2026
 const SERIES_WINTER = {
-  // W/L courses (upwind start, port roundings, gate finish)
-  W1:  { name: "W Course 1 — W/L",  dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"LeewardMark",r:"P"},{m:"Finish",r:""}] },
-  W2:  { name: "W Course 2 — W/L",  dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"LeewardMark",r:"P"},{m:"LeewardMark",r:"P"},{m:"Finish",r:""}] },
-  W10: { name: "W Course 10 — W/L", dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"Iliomama",r:"P"},{m:"Iliomama",r:"P"},{m:"Finish",r:""}] },
-  W13: { name: "W Course 13 — W/L", dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"NorthernLeading",r:"P"},{m:"NorthernLeading",r:"P"},{m:"Finish",r:""}] },
-  // Harbour courses (same as midweek sheet)
-  W3:  { name: "W Course 3",  dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"P"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
+  // W/L courses: Start → WindwardMark(P) → LeewardMark(S) → WindwardMark(P) → Finish
+  W1:  { name: "W Course 1 — W/L",  dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"P"},{m:"LeewardMark",r:"S"},{m:"Motukorea",r:"P"},{m:"Finish",r:""}] },
+  W2:  { name: "W Course 2 — W/L",  dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"P"},{m:"LeewardMark",r:"S"},{m:"Motukorea",r:"P"},{m:"LeewardMark",r:"S"},{m:"Motukorea",r:"P"},{m:"Finish",r:""}] },
+  W3:  { name: "W Course 3 — W/L", dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"P"},{m:"LeewardMark",r:"S"},{m:"Motukorea",r:"P"},{m:"LeewardMark",r:"S"},{m:"Finish",r:""}] },
   W4:  { name: "W Course 4",  dist: "8NM",    waypoints: [{m:"Start",r:""},{m:"Iliomama",r:"S"},{m:"Motuihe",r:"S"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
   W5:  { name: "W Course 5",  dist: "14.8NM", waypoints: [{m:"Start",r:""},{m:"Iliomama",r:"S"},{m:"Motuihe",r:"S"},{m:"Motukorea",r:"S"},{m:"Iliomama",r:"S"},{m:"Motuihe",r:"S"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
   W6:  { name: "W Course 6",  dist: "9.5NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"*"},{m:"Iliomama",r:"S"},{m:"Motuihe",r:"S"},{m:"NavyBuoy",r:"S"},{m:"BrownsBeacon",r:"P"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
   W7:  { name: "W Course 7",  dist: "9.5NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"*"},{m:"BrownsBeacon",r:"S"},{m:"NavyBuoy",r:"P"},{m:"Motuihe",r:"P"},{m:"Iliomama",r:"P"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
   W8:  { name: "W Course 8",  dist: "9.8NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"*"},{m:"Rangitoto",r:"S"},{m:"Iliomama",r:"S"},{m:"NorthHead",r:"P"},{m:"Motukorea",r:"S"},{m:"Karaka",r:""}] },
   W9:  { name: "W Course 9",  dist: "9.7NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"*"},{m:"NorthHead",r:"S"},{m:"Iliomama",r:"P"},{m:"Rangitoto",r:"P"},{m:"Motukorea",r:"S"},{m:"Karaka",r:""}] },
+  W10: { name: "W Course 10 — W/L", dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"Iliomama",r:"P"},{m:"LeewardMark",r:"S"},{m:"Iliomama",r:"P"},{m:"LeewardMark",r:"S"},{m:"Finish",r:""}] },
   W11: { name: "W Course 11", dist: "7.1NM",  waypoints: [{m:"Start",r:""},{m:"NorthernLeading",r:"S"},{m:"Rangitoto",r:"P"},{m:"RoughRock",r:"P"},{m:"NorthernLeading",r:"P"},{m:"Rangitoto",r:"S"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
   W12: { name: "W Course 12", dist: "9.4NM",  waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"S"},{m:"RoughRock",r:"S"},{m:"SaltWorks",r:"P"},{m:"NarrowNeck",r:"P"},{m:"Motukorea",r:"S"},{m:"Karaka",r:""}] },
+  W13: { name: "W Course 13 — W/L", dist: "4-8NM",  waypoints: [{m:"Start",r:""},{m:"NorthernLeading",r:"P"},{m:"LeewardMark",r:"S"},{m:"NorthernLeading",r:"P"},{m:"LeewardMark",r:"S"},{m:"Finish",r:""}] },
   W14: { name: "W Course 14", dist: "6.5NM",  waypoints: [{m:"Start",r:""},{m:"Iliomama",r:"P"},{m:"Motukorea",r:"P"},{m:"Iliomama",r:"P"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
   W15: { name: "W Course 15", dist: "6NM",    waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"*"},{m:"Iliomama",r:"P"},{m:"Rangitoto",r:"P"},{m:"Motukorea",r:"S"},{m:"Karaka",r:""}] },
   W16: { name: "W Course 16", dist: "10.1NM", waypoints: [{m:"Start",r:""},{m:"Motukorea",r:"*"},{m:"Iliomama",r:"S"},{m:"Motuihe",r:"S"},{m:"NavyBuoy",r:"S"},{m:"BrownsBeacon",r:"P"},{m:"Iliomama",r:"P"},{m:"Motukorea",r:"P"},{m:"Karaka",r:""}] },
@@ -1024,10 +1023,20 @@ function isStationAlive(data) {
   return true;
 }
 
+async function fetchJsonWithTimeout(url, timeoutMs = 8000) {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+  try {
+    const resp = await fetch(url, { signal: controller.signal });
+    if (!resp.ok) throw new Error(`${url} HTTP ${resp.status}`);
+    return await resp.json();
+  } finally {
+    clearTimeout(timeoutId);
+  }
+}
+
 async function tryWeathercloudStation() {
-  const resp = await fetch('/api/weathercloud');
-  if (!resp.ok) throw new Error('Weathercloud HTTP ' + resp.status);
-  const data = await resp.json();
+  const data = await fetchJsonWithTimeout('/api/weathercloud', 8000);
   if (!data || data.wspd === undefined) throw new Error('No wspd field');
   if (!isStationAlive(data)) throw new Error('Weathercloud station offline/stale');
 
@@ -1043,9 +1052,7 @@ async function tryWeathercloudStation() {
 }
 
 async function tryWeatherLinkStation() {
-  const resp = await fetch('/api/weatherlink');
-  if (!resp.ok) throw new Error('WeatherLink HTTP ' + resp.status);
-  const data = await resp.json();
+  const data = await fetchJsonWithTimeout('/api/weatherlink', 8000);
   if (!data || data.wind === undefined) throw new Error('No wind field');
   if (!isStationAlive(data)) throw new Error('WeatherLink station offline/stale');
 
