@@ -990,6 +990,14 @@ function directionText(deg) {
   return dirs[Math.round(deg / 22.5) % 16];
 }
 
+function normalizeStationWindDir(rawDeg) {
+  const deg = Number(rawDeg);
+  if (!Number.isFinite(deg)) return 0;
+  // Local station feeds are reporting the reciprocal of the real observed wind
+  // direction, so convert them back to the meteorological “from” bearing.
+  return (deg + 180) % 360;
+}
+
 // ============================================================
 // WEATHER — Open-Meteo
 // ============================================================
@@ -1044,7 +1052,7 @@ async function tryWeathercloudStation() {
   return {
     windKn: (data.wspdavg ?? data.wspd ?? 0) * 1.94384,
     gustKn: (data.wspdhi ?? data.wspd ?? 0) * 1.94384,
-    dir: parseFloat(data.wdiravg ?? data.wdir ?? 0),
+    dir: normalizeStationWindDir(data.wdiravg ?? data.wdir ?? 0),
     temp: parseFloat(data.temp ?? 0),
     obsTime: data.epoch ? new Date(data.epoch * 1000) : new Date(),
     source: 'Devonport (Weathercloud)',
@@ -1062,7 +1070,7 @@ async function tryWeatherLinkStation() {
   return {
     windKn: windKmh / 1.852,
     gustKn: gustKmh / 1.852,
-    dir: parseFloat(data.windDirection ?? 0),
+    dir: normalizeStationWindDir(data.windDirection ?? 0),
     temp: parseFloat(data.temperature ?? 0),
     obsTime: data.lastReceived ? new Date(data.lastReceived) : new Date(),
     source: 'Auckland (WeatherLink)',
