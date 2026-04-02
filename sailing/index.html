@@ -993,9 +993,9 @@ function directionText(deg) {
 function normalizeStationWindDir(rawDeg) {
   const deg = Number(rawDeg);
   if (!Number.isFinite(deg)) return 0;
-  // Local station feeds are reporting the reciprocal of the real observed wind
-  // direction, so convert them back to the meteorological “from” bearing.
-  return (deg + 180) % 360;
+  // Station feeds are already reporting the meteorological wind direction
+  // (the direction the wind is coming FROM), so just normalise to 0..359.
+  return ((deg % 360) + 360) % 360;
 }
 
 // ============================================================
