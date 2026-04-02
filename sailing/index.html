@@ -169,6 +169,12 @@
     background: #fff4db;
     color: #9a5d00;
   }
+  .status-chip-modelled-primary {
+    background: #fff0c2;
+    color: #7a4700;
+    border: 1px solid #f5c842;
+    font-weight: 800;
+  }
   .status-chip-calculated {
     background: #ede7f6;
     color: #5e35b1;
@@ -786,17 +792,17 @@
       </div>
       <div class="section-meta" style="justify-content:space-between;align-items:center;">
         <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;">
-          <span class="source-chip" id="wx-source-chip">Source: <a href="https://app.weathercloud.net/d0816548764" target="_blank" rel="noopener noreferrer" id="wx-source-link">Devonport (Weathercloud)</a></span>
-          <span class="status-chip status-chip-live">LIVE</span>
+          <span class="source-chip" id="wx-source-chip">Source: <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank" rel="noopener noreferrer" id="wx-source-link">Windfinder — Stanley Point / Devonport</a></span>
+          <span class="status-chip status-chip-modelled status-chip-modelled-primary" id="wx-data-type-chip">📡 MODELLED</span>
         </div>
         <select id="wx-station-select" onchange="onStationChange()" style="font-size:0.72rem;padding:3px 6px;border-radius:6px;border:1px solid #ccd;background:#f5f6ff;color:#2c2e43;cursor:pointer;">
-          <option value="auto">Auto (primary + fallback)</option>
-          <option value="weathercloud">Devonport – Davis VP2 (Weathercloud)</option>
-          <option value="weatherlink">Auckland – WeatherLink ARKHQ</option>
+          <option value="windfinder" selected>Windfinder GFS — Stanley Point / Devonport</option>
+          <option value="weathercloud">Devonport – Davis VP2 (Weathercloud) [live station]</option>
+          <option value="weatherlink">Auckland – WeatherLink ARKHQ [live station]</option>
         </select>
       </div>
       <div style="margin-bottom:6px;font-size:0.75rem;opacity:0.65;" id="wx-station-desc">
-        📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater)
+        📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.
       </div>
       <div class="conditions-grid">
         <div class="cond-item">
@@ -885,10 +891,10 @@
         <span id="chart-spinner" class="spinner"></span>
       </div>
       <div class="section-meta">
-        <span class="source-chip">Source: <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a></span>
-        <span class="status-chip status-chip-modelled">MODELLED</span>
+        <span class="source-chip">Source: <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank" rel="noopener noreferrer">Windfinder / GFS</a></span>
+        <span class="status-chip status-chip-modelled">📡 MODELLED</span>
       </div>
-      <div style="font-size:0.72rem;opacity:0.65;margin-bottom:4px;" id="chart-location-label">📍 Devonport / North Head (Open-Meteo forecast)</div>
+      <div style="font-size:0.72rem;opacity:0.65;margin-bottom:4px;" id="chart-location-label">📡 Windfinder / GFS — Stanley Point / Devonport (3-hourly, 13km model)</div>
       <div class="chart-wrap">
         <canvas id="wind-chart"></canvas>
       </div>
@@ -922,8 +928,9 @@
     <div class="card" id="card-sources">
       <div class="card-title">🔎 Data Sources</div>
       <div style="font-size:0.76rem;line-height:1.45;opacity:0.88;display:grid;gap:6px;">
-        <div><b>Live conditions:</b> Weathercloud — Davis Vantage Pro2, Devonport (<a href="https://app.weathercloud.net/d0816548764" target="_blank">d0816548764</a>) — real station observations</div>
-        <div><b>5-day wind forecast chart:</b> Open-Meteo (<a href="https://open-meteo.com/" target="_blank">open-meteo.com</a>) — modelled forecast</div>
+        <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — GFS model, Stanley Point / Devonport (13km resolution, 3-hourly) <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
+        <div style="opacity:0.7;font-size:0.72rem;padding-left:8px;">⚠️ This is a forecast model, not a live weather station. Data updates every 6 hours with each GFS model run.</div>
+        <div><b>Live station fallbacks:</b> <a href="https://app.weathercloud.net/d0816548764" target="_blank">Weathercloud Devonport</a> (Davis VP2) · <a href="https://www.weatherlink.com/embeddablePage/show/3f5b1b7c23064def84b8b87f51dfc094/wide" target="_blank">WeatherLink ARKHQ</a> — selectable via dropdown above</div>
         <div><b>Tides:</b> Live Auckland tide table from tide-forecast.com plus an approximate flood/ebb set overlay for tactical context (not navigation grade)</div>
         <div><b>Race marks / buoy positions:</b> Auckland Transport harbour racing buoys chart</div>
         <div><b>Courses / roundings:</b> BBYC 2025–2026 Mid-Week & Winter General Course Sheet <span class="status-chip status-chip-static" style="font-size:0.65rem;padding:1px 6px;">STATIC</span></div>
@@ -1207,6 +1214,25 @@ async function fetchJsonWithTimeout(url, timeoutMs = 8000) {
   }
 }
 
+async function tryWindfinderStation() {
+  const data = await fetchJsonWithTimeout('/api/windfinder', 12000);
+  if (!data || !data.ok) throw new Error(data?.error || 'Windfinder fetch failed');
+  const c = data.current;
+  if (!c || c.windKn === undefined) throw new Error('No wind data in Windfinder response');
+
+  return {
+    windKn: c.windKn,
+    gustKn: c.gustKn,
+    dir: c.dir,
+    temp: c.tempC,
+    precipPct: c.precipPct,
+    obsTime: new Date(c.dtl),
+    source: 'Windfinder / GFS — Stanley Point, Devonport',
+    isModelled: true,
+    forecast: data.forecast || [],
+  };
+}
+
 async function tryWeathercloudStation() {
   const data = await fetchJsonWithTimeout('/api/weathercloud', 8000);
   if (!data || data.wspd === undefined) throw new Error('No wspd field');
@@ -1242,10 +1268,23 @@ async function tryWeatherLinkStation() {
 }
 
 const STATION_DESCS = {
-  weathercloud: '📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater)',
-  weatherlink:  '📍 Davis station — Auckland city (WeatherLink ARKHQ)',
+  windfinder:   '📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.',
+  weathercloud: '📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater) [live station]',
+  weatherlink:  '📍 Davis station — Auckland city (WeatherLink ARKHQ) [live station]',
   auto:         '📍 Auto: Devonport primary, Auckland fallback',
 };
+
+function updateDataTypeChip(isModelled) {
+  const chip = document.getElementById('wx-data-type-chip');
+  if (!chip) return;
+  if (isModelled) {
+    chip.textContent = '📡 MODELLED';
+    chip.className = 'status-chip status-chip-modelled status-chip-modelled-primary';
+  } else {
+    chip.textContent = '✅ LIVE STATION';
+    chip.className = 'status-chip status-chip-live';
+  }
+}
 
 function onStationChange() {
   const sel = document.getElementById('wx-station-select').value;
@@ -1259,7 +1298,9 @@ async function fetchLiveConditions() {
   let obs = null;
   const stationPref = (document.getElementById('wx-station-select') || {}).value || 'auto';
 
-  if (stationPref === 'weathercloud') {
+  if (stationPref === 'windfinder') {
+    try { obs = await tryWindfinderStation(); } catch(e) { console.error('Windfinder failed:', e.message); }
+  } else if (stationPref === 'weathercloud') {
     try { obs = await tryWeathercloudStation(); } catch(e) { console.error('Weathercloud failed:', e.message); }
   } else if (stationPref === 'weatherlink') {
     try { obs = await tryWeatherLinkStation(); } catch(e) { console.error('WeatherLink failed:', e.message); }
@@ -1283,7 +1324,7 @@ async function fetchLiveConditions() {
     return;
   }
 
-  const { windKn, gustKn, dir, temp, obsTime, source } = obs;
+  const { windKn, gustKn, dir, temp, obsTime, source, isModelled, precipPct } = obs;
   currentWeatherObs = obs;
   const bf = knotsToBeaufort(windKn);
   const previousWindDir = currentWindDir;
@@ -1293,7 +1334,22 @@ async function fetchLiveConditions() {
   document.getElementById('wind-beaufort').textContent = `Beaufort ${bf} — ${beaufortDescription(bf)}`;
   document.getElementById('wind-gusts').textContent = gustKn.toFixed(1);
   document.getElementById('temperature').textContent = temp.toFixed(1);
-  document.getElementById('precip-prob').textContent = '--';
+  document.getElementById('precip-prob').textContent = precipPct !== undefined ? precipPct : '--';
+
+  // Update data-type chip based on source
+  updateDataTypeChip(isModelled === true);
+
+  // Update source chip link
+  const sourceChipEl = document.getElementById('wx-source-chip');
+  const sourceLinkEl = document.getElementById('wx-source-link');
+  if (sourceLinkEl) {
+    if (isModelled) {
+      sourceLinkEl.href = 'https://www.windfinder.com/forecast/stanley_point_devonport';
+      sourceLinkEl.textContent = source;
+    } else {
+      sourceLinkEl.textContent = source;
+    }
+  }
 
   document.getElementById('wind-dir-text').textContent = directionText(dir) + ` (${Math.round(dir)}°)`;
   currentWindDir = dir;
@@ -1305,14 +1361,9 @@ async function fetchLiveConditions() {
   updateBeaufortBar(bf);
   updateSailingStatus(bf);
 
+  const obsLabel = isModelled ? 'model run' : 'obs';
   document.getElementById('last-refresh').textContent =
-    `${source} · obs: ` + obsTime.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland' });
-
-  // Update source chip text to show which station is active
-  const sourceChipEl = document.querySelector('.card-title + .section-meta .source-chip a');
-  if (sourceChipEl) {
-    sourceChipEl.textContent = source;
-  }
+    `${obsLabel}: ` + obsTime.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland' });
 
   document.getElementById('conditions-spinner').style.display = 'none';
 
@@ -1329,7 +1380,26 @@ async function fetchLiveConditions() {
 async function fetchForecastChart() {
   document.getElementById('chart-spinner').style.display = 'inline-block';
   try {
-    // Open-Meteo for 5-day wind forecast chart (Devonport coords)
+    // Try Windfinder forecast data first (already fetched via /api/windfinder)
+    const wfData = await fetchJsonWithTimeout('/api/windfinder', 12000).catch(() => null);
+    if (wfData && wfData.ok && wfData.forecast && wfData.forecast.length >= 8) {
+      buildWindChartFromWF(wfData.forecast);
+      document.getElementById('chart-location-label').textContent =
+        '📡 Windfinder / GFS — Stanley Point / Devonport (3-hourly, 13km model)';
+      const srcLink = document.querySelector('#card-forecast .source-chip a');
+      if (srcLink) {
+        srcLink.href = 'https://www.windfinder.com/forecast/stanley_point_devonport';
+        srcLink.textContent = 'Windfinder / GFS';
+      }
+      document.getElementById('chart-spinner').style.display = 'none';
+      return;
+    }
+  } catch (e) {
+    console.warn('Windfinder forecast chart failed, falling back to Open-Meteo:', e.message);
+  }
+
+  try {
+    // Fallback: Open-Meteo for 5-day wind forecast chart (Devonport coords)
     const url = 'https://api.open-meteo.com/v1/forecast?' +
       'latitude=-36.831&longitude=174.791' +
       '&hourly=wind_speed_10m,wind_gusts_10m' +
@@ -1340,11 +1410,124 @@ async function fetchForecastChart() {
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Forecast failed: ${resp.status}`);
     const data = await resp.json();
-    if (data && data.hourly) buildWindChart(data.hourly);
+    if (data && data.hourly) {
+      buildWindChart(data.hourly);
+      document.getElementById('chart-location-label').textContent =
+        '📡 Open-Meteo (fallback) — Stanley Point / Devonport';
+    }
   } catch (e) {
     console.error('Forecast chart failed:', e);
   }
   document.getElementById('chart-spinner').style.display = 'none';
+}
+
+function buildWindChartFromWF(forecast) {
+  // forecast is [{dtl, windKn, gustKn, dir}, ...]
+  const times = forecast.map(f => f.dtl);
+  const speeds = forecast.map(f => f.windKn);
+  const gusts = forecast.map(f => f.gustKn);
+
+  // Build day labels (every new calendar day in Auckland TZ)
+  let lastDay = null;
+  const labels = times.map((t) => {
+    const d = new Date(t);
+    const dayStr = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric' });
+    if (dayStr !== lastDay) {
+      lastDay = dayStr;
+      return dayStr;
+    }
+    return '';
+  });
+
+  const greenLimit = 22;
+  const amberLimit = 33;
+  if (windChart) windChart.destroy();
+
+  const ctx = document.getElementById('wind-chart').getContext('2d');
+  windChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'Wind (kn)',
+          data: speeds,
+          borderColor: '#2ea3f2',
+          backgroundColor: 'rgba(46,163,242,0.12)',
+          borderWidth: 1.5,
+          pointRadius: 0,
+          fill: true,
+          tension: 0.3,
+        },
+        {
+          label: 'Gusts (kn)',
+          data: gusts,
+          borderColor: '#dc3545',
+          backgroundColor: 'rgba(220,53,69,0.06)',
+          borderWidth: 1,
+          pointRadius: 0,
+          fill: false,
+          tension: 0.3,
+          borderDash: [4, 3],
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: true, labels: { color: '#2c2e43', font: { size: 11 }, boxWidth: 20, padding: 10 } },
+        tooltip: {
+          callbacks: {
+            title: (items) => {
+              const t = times[items[0].dataIndex];
+              return new Date(t).toLocaleString('en-NZ', {
+                weekday: 'short', month: 'short', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', timeZone: 'Pacific/Auckland',
+              });
+            },
+          },
+        },
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxRotation: 0,
+            font: { size: 9 },
+            color: '#888',
+            autoSkip: false,
+            callback: (val, i) => labels[i] || null,
+          },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+        },
+        y: {
+          min: 0,
+          ticks: { font: { size: 9 }, color: '#888' },
+          grid: { color: 'rgba(0,0,0,0.04)' },
+          title: { display: true, text: 'knots', font: { size: 9 }, color: '#888' },
+        },
+      },
+    },
+    plugins: [{
+      id: 'colorBands',
+      beforeDraw(chart) {
+        const { ctx, chartArea: { left, right, top, bottom }, scales: { y } } = chart;
+        if (!y) return;
+        const toY = v => bottom - ((v - y.min) / (y.max - y.min)) * (bottom - top);
+        ctx.save();
+        ctx.fillStyle = 'rgba(40,167,69,0.07)';
+        ctx.fillRect(left, toY(Math.min(greenLimit, y.max)), right - left, toY(0) - toY(Math.min(greenLimit, y.max)));
+        ctx.fillStyle = 'rgba(255,193,7,0.10)';
+        ctx.fillRect(left, toY(Math.min(amberLimit, y.max)), right - left, toY(greenLimit) - toY(Math.min(amberLimit, y.max)));
+        if (y.max > amberLimit) {
+          ctx.fillStyle = 'rgba(220,53,69,0.08)';
+          ctx.fillRect(left, top, right - left, toY(amberLimit) - top);
+        }
+        ctx.restore();
+      },
+    }],
+  });
 }
 
 async function fetchWeather() {
