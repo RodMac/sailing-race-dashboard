@@ -36,12 +36,21 @@ function decode(v) {
   return v[1];
 }
 
+function unwrapScalar(v) {
+  if (Array.isArray(v) && v.length >= 2 && (v[0] === 0 || v[0] === 1)) {
+    return unwrapScalar(v[1]);
+  }
+  return v;
+}
+
 function msToKnots(ms) {
-  return ms * 1.94384;
+  const n = Number(unwrapScalar(ms));
+  return Number.isFinite(n) ? n * 1.94384 : null;
 }
 
 function kelvinToCelsius(k) {
-  return k - 273.15;
+  const n = Number(unwrapScalar(k));
+  return Number.isFinite(n) ? n - 273.15 : null;
 }
 
 export async function onRequest(context) {
@@ -75,14 +84,14 @@ export async function onRequest(context) {
 
     const cc = decode(currentIsland.initCC);
     const current = {
-      windMs:  cc.ws,
-      gustMs:  cc.wg,
+      windMs:  Number(unwrapScalar(cc.ws)),
+      gustMs:  Number(unwrapScalar(cc.wg)),
       windKn:  msToKnots(cc.ws),
       gustKn:  msToKnots(cc.wg),
-      dir:     cc.wd,
+      dir:     Number(unwrapScalar(cc.wd)),
       tempC:   kelvinToCelsius(cc.at),
-      precipPct: Math.round((cc.p || 0) * 100),
-      dtl:     cc.dtl,
+      precipPct: Math.round(Number(unwrapScalar(cc.p) || 0) * 100),
+      dtl:     unwrapScalar(cc.dtl),
       // GFS model data — label clearly as modelled
       source:  'Windfinder / GFS model — Stanley Point, Devonport',
       isModelled: true,
@@ -99,10 +108,10 @@ export async function onRequest(context) {
         for (const h of horizons) {
           const hd = decode(h);
           forecast.push({
-            dtl:    hd.dtl,
+            dtl:    unwrapScalar(hd.dtl),
             windKn: msToKnots(hd.ws),
             gustKn: msToKnots(hd.wg),
-            dir:    hd.wd,
+            dir:    Number(unwrapScalar(hd.wd)),
           });
         }
       }

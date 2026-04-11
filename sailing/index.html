@@ -796,15 +796,15 @@
           <span class="status-chip status-chip-modelled status-chip-modelled-primary" id="wx-data-type-chip">📡 MODELLED</span>
         </div>
         <select id="wx-station-select" onchange="onStationChange()" style="font-size:0.72rem;padding:3px 6px;border-radius:6px;border:1px solid #ccd;background:#f5f6ff;color:#2c2e43;cursor:pointer;">
-          <option value="weathercloud" selected>Devonport – Davis VP2 (Weathercloud) [live station]</option>
+          <option value="openmeteo" selected>Open-Meteo — Stanley Point / Devonport [model]</option>
+          <option value="weathercloud">Devonport – Davis VP2 (Weathercloud) [live station]</option>
           <option value="weatherlink">Auckland – WeatherLink ARKHQ [live station]</option>
           <option value="windfinder">Windfinder GFS — Stanley Point / Devonport [model]</option>
-          <option value="openmeteo">Open-Meteo — Stanley Point / Devonport [model]</option>
           <option value="openweather">OpenWeather — Stanley Point / Devonport [blended/modelled]</option>
         </select>
       </div>
       <div style="margin-bottom:6px;font-size:0.75rem;opacity:0.65;" id="wx-station-desc">
-        📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater) [live station]
+        📡 Open-Meteo current conditions are model-derived, not a live station feed.
       </div>
       <div class="conditions-grid">
         <div class="cond-item">
@@ -1382,15 +1382,20 @@ async function fetchLiveConditions() {
   } else if (stationPref === 'weatherlink') {
     try { obs = await tryWeatherLinkStation(); } catch(e) { console.error('WeatherLink failed:', e.message); }
   } else {
-    // Auto: primary then fallback
-    try {
-      obs = await tryWeathercloudStation();
-    } catch (primaryErr) {
-      console.warn('Primary station failed:', primaryErr.message, '— trying backup');
+    // Auto fallback order: prefer best currently-usable source, skipping bad data.
+    const attempts = [
+      ['openmeteo', tryOpenMeteoStation],
+      ['weathercloud', tryWeathercloudStation],
+      ['weatherlink', tryWeatherLinkStation],
+      ['windfinder', tryWindfinderStation],
+      ['openweather', tryOpenWeatherStation],
+    ];
+    for (const [label, fn] of attempts) {
       try {
-        obs = await tryWeatherLinkStation();
-      } catch (backupErr) {
-        console.error('Backup station also failed:', backupErr.message);
+        obs = await fn();
+        if (isMeaningfulObservation(obs)) break;
+      } catch (err) {
+        console.warn(label, 'failed:', err.message);
       }
     }
   }
