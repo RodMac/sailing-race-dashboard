@@ -788,13 +788,13 @@
           <span class="status-chip status-chip-modelled status-chip-modelled-primary" id="wx-data-type-chip">📡 MODELLED</span>
         </div>
         <select id="wx-station-select" onchange="onStationChange()" style="font-size:0.72rem;padding:3px 6px;border-radius:6px;border:1px solid #ccd;background:#f5f6ff;color:#2c2e43;cursor:pointer;">
-          <option value="openmeteo" selected>Open-Meteo — Stanley Point / Devonport [model]</option>
+          <option value="metservice" selected>MetService Point Forecast — Stanley Point / Devonport [model]</option>
+          <option value="openmeteo">Open-Meteo — Stanley Point / Devonport [model]</option>
           <option value="windfinder">Windfinder GFS — Stanley Point / Devonport [model]</option>
-          <option value="openweather">OpenWeather — Stanley Point / Devonport [regional API]</option>
         </select>
       </div>
       <div style="margin-bottom:6px;font-size:0.75rem;opacity:0.65;" id="wx-station-desc">
-        📡 Open-Meteo current conditions are model-derived, not a live station feed.
+        📡 MetService Point Forecast is model-derived forecast data, not a live station feed.
       </div>
       <div class="conditions-grid">
         <div class="cond-item">
@@ -921,8 +921,8 @@
       <div style="font-size:0.76rem;line-height:1.45;opacity:0.88;display:grid;gap:6px;">
         <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — GFS model, Stanley Point / Devonport (13km resolution, 3-hourly) <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
         <div style="opacity:0.7;font-size:0.72rem;padding-left:8px;">⚠️ This is a forecast model, not a live weather station. Data updates every 6 hours with each GFS model run.</div>
-        <div><b>Wind sources:</b> Open-Meteo and Windfinder are the main usable sources right now</div>
-        <div><b>OpenWeather:</b> regional API data, useful as a cross-check when active, but not a local live station feed</div>
+        <div><b>Wind sources:</b> MetService Point Forecast is now the primary NZ forecast source, with Open-Meteo and Windfinder as cross-checks</div>
+        <div><b>MetService datasets:</b> the listed GFS, ECMWF and WW3 products are forecast/model feeds, not live observations</div>
         <div><b>Tides:</b> Live Auckland tide table from tide-forecast.com plus an approximate flood/ebb set overlay for tactical context (not navigation grade)</div>
         <div><b>Race marks / buoy positions:</b> Auckland Transport harbour racing buoys chart</div>
         <div><b>Courses / roundings:</b> BBYC 2025–2026 Mid-Week & Winter General Course Sheet <span class="status-chip status-chip-static" style="font-size:0.65rem;padding:1px 6px;">STATIC</span></div>
@@ -1169,7 +1169,7 @@ let windChart = null;
 
 // Weathercloud device ID for Devonport station (Davis Vantage Pro2, SW Hauraki Gulf)
 const WC_DEVICE_ID = '0816548764';
-const OPENWEATHER_API_KEY = window.OPENWEATHER_API_KEY || 'b561a1aa0aed30e746e10eecdea19753';
+const METSERVICE_API_KEY = 'LPF8QZCHS11VWeL5HJmjTF';
 
 function setWeatherUnavailable(message = 'Weather data unavailable') {
   const el = document.getElementById('sailing-status');
@@ -1215,11 +1215,14 @@ function isMeaningfulObservation(obs) {
   return true;
 }
 
-async function fetchJsonWithTimeout(url, timeoutMs = 8000) {
+async function fetchJsonWithTimeout(url, timeoutMs = 8000, options = {}) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
   try {
-    const resp = await fetch(url, { signal: controller.signal });
+    const resp = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
     if (!resp.ok) throw new Error(`${url} HTTP ${resp.status}`);
     return await resp.json();
   } finally {
@@ -1285,26 +1288,39 @@ async function tryOpenMeteoStation() {
   };
 }
 
-async function tryOpenWeatherStation() {
-  if (!OPENWEATHER_API_KEY) throw new Error('OpenWeather API key not configured');
-  const url = 'https://api.openweathermap.org/data/2.5/weather?' +
-    'lat=-36.831&lon=174.791' +
-    '&units=metric' +
-    '&appid=' + encodeURIComponent(OPENWEATHER_API_KEY);
-  const data = await fetchJsonWithTimeout(url, 12000);
-  if (!data || !data.wind) throw new Error('No OpenWeather wind data');
+async function tryMetServiceStation() {
+  if (!METSERVICE_API_KEY) throw new Error('MetService API key not configured');
 
-  const windMs = parseFloat(data.wind.speed ?? 0);
-  const gustMs = parseFloat(data.wind.gust ?? data.wind.speed ?? 0);
+  const url = 'https://point-forecast-api.metservice.com/point?' +
+    'lat=-36.831&lon=174.791' +
+    '&variables=wind.speed,wind.speed.gust,wind.direction,air.temperature.at-2m,precipitation.probability';
+
+  const data = await fetchJsonWithTimeout(url, 12000, {
+    headers: {
+      'x-api-key': METSERVICE_API_KEY,
+      'Accept': 'application/json',
+    },
+  });
+
+  const first = data?.data?.points?.[0]?.forecast?.[0] || data?.points?.[0]?.forecast?.[0] || data?.forecast?.[0] || null;
+  if (!first) throw new Error('No MetService forecast data');
+
+  const windMs = parseFloat(first['wind.speed'] ?? first.windSpeed ?? first.wind_speed ?? 0);
+  const gustMs = parseFloat(first['wind.speed.gust'] ?? first.windSpeedGust ?? first.wind_gust ?? windMs);
+  const windDir = parseFloat(first['wind.direction'] ?? first.windDirection ?? first.wind_direction ?? 0);
+  const temp = parseFloat(first['air.temperature.at-2m'] ?? first.airTemperatureAt2m ?? first.temperature ?? 0);
+  const precip = parseFloat(first['precipitation.probability'] ?? first.precipitationProbability ?? first.precipitation_probability ?? NaN);
+  const obsTimeRaw = first.time || first.validTime || first.forecastTime;
+
   return {
     windKn: windMs * 1.94384,
     gustKn: gustMs * 1.94384,
-    dir: normalizeStationWindDir(data.wind.deg ?? 0),
-    temp: parseFloat(data.main?.temp ?? 0),
-    obsTime: data.dt ? new Date(data.dt * 1000) : new Date(),
-    source: 'OpenWeather',
+    dir: normalizeStationWindDir(windDir),
+    temp,
+    obsTime: obsTimeRaw ? new Date(obsTimeRaw) : new Date(),
+    source: 'MetService Point Forecast',
     isModelled: true,
-    precipPct: data.clouds?.all,
+    precipPct: Number.isFinite(precip) ? precip : undefined,
   };
 }
 
@@ -1329,9 +1345,9 @@ async function tryWeatherLinkStation() {
 }
 
 const STATION_DESCS = {
+  metservice:   '📡 MetService Point Forecast is model-derived forecast data, not a live station feed.',
   windfinder:   '📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.',
   openmeteo:    '📡 Open-Meteo current conditions are model-derived, not a live station feed.',
-  openweather:  '📡 OpenWeather regional API data, not a local live station feed.',
   auto:         '📍 Auto fallback across available sources',
 };
 
@@ -1361,16 +1377,16 @@ async function fetchLiveConditions() {
 
   if (stationPref === 'windfinder') {
     try { obs = await tryWindfinderStation(); } catch(e) { console.error('Windfinder failed:', e.message); }
+  } else if (stationPref === 'metservice') {
+    try { obs = await tryMetServiceStation(); } catch(e) { console.error('MetService failed:', e.message); }
   } else if (stationPref === 'openmeteo') {
     try { obs = await tryOpenMeteoStation(); } catch(e) { console.error('Open-Meteo failed:', e.message); }
-  } else if (stationPref === 'openweather') {
-    try { obs = await tryOpenWeatherStation(); } catch(e) { console.error('OpenWeather failed:', e.message); }
   } else {
     // Auto fallback order: prefer best currently-usable source, skipping bad data.
     const attempts = [
+      ['metservice', tryMetServiceStation],
       ['openmeteo', tryOpenMeteoStation],
       ['windfinder', tryWindfinderStation],
-      ['openweather', tryOpenWeatherStation],
     ];
     for (const [label, fn] of attempts) {
       try {
@@ -1408,7 +1424,7 @@ async function fetchLiveConditions() {
   const sourceLinkEl = document.getElementById('wx-source-link');
   if (sourceLinkEl) {
     if (isModelled) {
-      sourceLinkEl.href = 'https://www.windfinder.com/forecast/stanley_point_devonport';
+      sourceLinkEl.href = source.includes('MetService') ? 'https://data.metservice.com/product/point-forecast-api' : 'https://www.windfinder.com/forecast/stanley_point_devonport';
       sourceLinkEl.textContent = source;
     } else {
       sourceLinkEl.textContent = source;
@@ -1459,7 +1475,42 @@ async function fetchForecastChart() {
       return;
     }
   } catch (e) {
-    console.warn('Windfinder forecast chart failed, falling back to Open-Meteo:', e.message);
+    console.warn('Windfinder forecast chart failed, falling back to MetService/Open-Meteo:', e.message);
+  }
+
+  try {
+    const url = 'https://point-forecast-api.metservice.com/point?' +
+      'lat=-36.831&lon=174.791' +
+      '&variables=wind.speed,wind.speed.gust' +
+      '&timeStep=hourly';
+
+    const data = await fetchJsonWithTimeout(url, 12000, {
+      headers: {
+        'x-api-key': METSERVICE_API_KEY,
+        'Accept': 'application/json',
+      },
+    });
+
+    const forecast = data?.data?.points?.[0]?.forecast || data?.points?.[0]?.forecast || data?.forecast || [];
+    if (Array.isArray(forecast) && forecast.length) {
+      const hourly = {
+        time: forecast.map(item => item.time || item.validTime || item.forecastTime).filter(Boolean),
+        wind_speed_10m: forecast.map(item => (parseFloat(item['wind.speed'] ?? item.windSpeed ?? item.wind_speed ?? 0) * 1.94384)),
+        wind_gusts_10m: forecast.map(item => (parseFloat(item['wind.speed.gust'] ?? item.windSpeedGust ?? item.wind_gust ?? item['wind.speed'] ?? 0) * 1.94384)),
+      };
+      buildWindChart(hourly);
+      document.getElementById('chart-location-label').textContent =
+        '📡 MetService Point Forecast — Stanley Point / Devonport';
+      const srcLink = document.querySelector('#card-forecast .source-chip a');
+      if (srcLink) {
+        srcLink.href = 'https://data.metservice.com/product/point-forecast-api';
+        srcLink.textContent = 'MetService Point Forecast';
+      }
+      document.getElementById('chart-spinner').style.display = 'none';
+      return;
+    }
+  } catch (e) {
+    console.warn('MetService forecast chart failed, falling back to Open-Meteo:', e.message);
   }
 
   try {
@@ -1487,34 +1538,7 @@ async function fetchForecastChart() {
       return;
     }
   } catch (e) {
-    console.warn('Open-Meteo forecast chart failed, falling back to OpenWeather:', e.message);
-  }
-
-  try {
-    // Fallback 2: OpenWeather 5-day / 3-hour forecast
-    if (!OPENWEATHER_API_KEY) throw new Error('OpenWeather API key not configured');
-    const url = 'https://api.openweathermap.org/data/2.5/forecast?' +
-      'lat=-36.831&lon=174.791' +
-      '&units=metric' +
-      '&appid=' + encodeURIComponent(OPENWEATHER_API_KEY);
-    const data = await fetchJsonWithTimeout(url, 12000);
-    if (!data || !Array.isArray(data.list) || data.list.length === 0) throw new Error('No OpenWeather forecast data');
-
-    const hourly = {
-      time: data.list.map(item => item.dt_txt || new Date(item.dt * 1000).toISOString()),
-      wind_speed_10m: data.list.map(item => (parseFloat(item.wind?.speed ?? 0) * 1.94384)),
-      wind_gusts_10m: data.list.map(item => (parseFloat(item.wind?.gust ?? item.wind?.speed ?? 0) * 1.94384)),
-    };
-    buildWindChart(hourly);
-    document.getElementById('chart-location-label').textContent =
-      '📡 OpenWeather (fallback) — Stanley Point / Devonport';
-    const srcLink = document.querySelector('#card-forecast .source-chip a');
-    if (srcLink) {
-      srcLink.href = 'https://openweathermap.org/forecast5';
-      srcLink.textContent = 'OpenWeather';
-    }
-  } catch (e) {
-    console.error('Forecast chart failed across Windfinder, Open-Meteo, and OpenWeather:', e);
+    console.error('Forecast chart failed across Windfinder, MetService, and Open-Meteo:', e);
   }
   document.getElementById('chart-spinner').style.display = 'none';
 }
