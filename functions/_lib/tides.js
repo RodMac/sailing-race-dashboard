@@ -28,13 +28,15 @@ export function parseTideForecastHtml(html) {
   const dates = [...dateHeaderMatch[0].matchAll(/data-date="([0-9-]+)"/g)].map((m) => m[1]);
   if (!dates.length) throw new Error('No tide dates found');
 
-  const highRowMatch = html.match(/<tr class="tide-table__separator">[\s\S]*?<td class="tide-table__part tide-table__part--high[\s\S]*?<\/tr><tr class="tide-table__separator tide-table__separator--wide">/i);
-  const lowRowMatch = html.match(/<tr class="tide-table__separator tide-table__separator--wide">[\s\S]*?<td class="tide-table__part tide-table__part--low[\s\S]*?<\/tr><tr class="tide-table__separator">/i);
-  if (!highRowMatch || !lowRowMatch) throw new Error('Could not find tide rows');
+  const highStart = html.indexOf('<tr class="tide-table__separator"><td class="tide-table__part tide-table__part--high');
+  const lowStart = html.indexOf('<tr class="tide-table__separator tide-table__separator--wide"><td class="tide-table__part tide-table__part--low');
+  if (highStart === -1 || lowStart === -1 || lowStart <= highStart) throw new Error('Could not find tide rows');
+
+  const highRow = html.slice(highStart, lowStart);
+  const lowEnd = html.indexOf('<tr class="tide-table__separator">', lowStart + 10);
+  const lowRow = lowEnd === -1 ? html.slice(lowStart) : html.slice(lowStart, lowEnd);
 
   const cellRegex = /<td class="tide-table__part[^>]*>([\s\S]*?)<\/td>/g;
-  const highRow = highRowMatch[0].replace(/<\/tr><tr class="tide-table__separator tide-table__separator--wide">$/i, '</tr>');
-  const lowRow = lowRowMatch[0].replace(/<\/tr><tr class="tide-table__separator">$/i, '</tr>');
   const highCells = [...highRow.matchAll(cellRegex)].map((m) => m[1]);
   const lowCells = [...lowRow.matchAll(cellRegex)].map((m) => m[1]);
 
