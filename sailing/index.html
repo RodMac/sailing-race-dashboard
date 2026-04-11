@@ -327,10 +327,10 @@
   }
   .tide-set-pill {
     position: absolute;
-    right: 12px;
-    bottom: 12px;
+    left: 14px;
+    bottom: 14px;
     z-index: 700;
-    max-width: 250px;
+    max-width: 220px;
     padding: 7px 9px;
     border-radius: 7px;
     background: rgba(255,255,255,0.92);
@@ -339,6 +339,7 @@
     font-size: 0.72rem;
     line-height: 1.35;
     color: #24435f;
+    pointer-events: none;
   }
   .tide-set-pill strong {
     color: #12314c;
@@ -859,7 +860,6 @@
         <span class="tide-state-arrow" id="tide-arrow">↗</span>
         <span id="tide-state-text">Calculating tides…</span>
       </div>
-      <div class="tide-set-pill" id="tide-set-pill">Approx tide set loading…</div>
       <div class="tide-list" id="tide-list" style="margin-top:8px;">
         <div style="opacity:0.5;font-size:0.8rem;padding:8px;">Calculating tides…</div>
       </div>
@@ -958,6 +958,7 @@
         <button id="location-toggle" class="map-control-btn" onclick="centerOnUserLocation()">📍 Locate me</button>
       </div>
       <div id="map"></div>
+      <div class="tide-set-pill" id="tide-set-pill">Approx tide set loading…</div>
       <div class="course-sidebar">
         <div class="course-sidebar-title">📋 Select Course</div>
         <div class="series-tabs" id="series-tabs-desktop">
@@ -2657,20 +2658,36 @@ function renderTactics(course, geometry = null) {
     return;
   }
 
-  let note = '';
-  if (openingLeg.type === 'upwind') note = 'Prioritise clear air on the first beat.';
-  else if (openingLeg.type === 'reach') note = 'First leg looks like a reach, prioritise pace over tricks.';
-  else note = `First leg is downwind, favour the ${openingLeg.poleLabel?.toLowerCase() || 'pressure'} side.`;
+  const openingMark = BUOYS[openingLeg.toWp?.m]?.label || 'the first mark';
+  const decisiveMark = BUOYS[decisiveLeg?.toWp?.m]?.label || 'the key leg';
+  const openingCross = describeCrossCurrent(openingLeg);
+  const decisiveAlong = decisiveLeg ? describeAlongCurrent(decisiveLeg) : '';
 
+  let summary = '';
+  if (openingLeg.type === 'upwind') summary = `First beat to ${openingMark}: prioritise clear air and only tack on real shifts.`;
+  else if (openingLeg.type === 'reach') summary = `Opening reach to ${openingMark}: sail fast first, then protect your lane.`;
+  else summary = `Opening run to ${openingMark}: commit early to the ${openingLeg.poleLabel?.toLowerCase() || 'pressure'} side and keep the boat settled.`;
+
+  const bullets = [];
   if (decisiveLeg && decisiveLeg.distanceNm >= 1.2) {
-    note += ` Biggest gains should come on the ${decisiveLeg.type} leg.`;
+    bullets.push(`Best passing lane is likely the longer ${decisiveLeg.type} leg toward ${decisiveMark}.`);
   }
-  if (currentTideState && currentTideState.strength >= 0.72) {
-    note += ` ${currentTideState.phase === 'ebb' ? 'Strong ebb, avoid overstanding into bad current.' : 'Strong flood, stay in pressure and protect lane.'}`;
+  if (currentTideState) {
+    bullets.push(
+      currentTideState.phase === 'ebb'
+        ? `Current: ebb ${currentTideState.strengthLabel}. Avoid overstanding into foul tide.`
+        : `Current: flood ${currentTideState.strengthLabel}. Stay in pressure and protect your lane.`
+    );
   }
+  if (openingCross) bullets.push(`On the opener: ${openingCross}.`);
+  else if (decisiveAlong) bullets.push(decisiveAlong + '.');
 
-  tacticsSummary.textContent = note;
-  tacticsList.innerHTML = '';
+  tacticsSummary.textContent = summary;
+  tacticsList.innerHTML = bullets.slice(0, 2).map(item => `
+    <div class="tactic-item" style="display:block;">
+      <span>${item}</span>
+    </div>
+  `).join('');
 }
 
 function redrawActiveCourseIfImplicationsChanged(reason = 'Updated') {
