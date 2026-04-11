@@ -797,6 +797,8 @@
         </div>
         <select id="wx-station-select" onchange="onStationChange()" style="font-size:0.72rem;padding:3px 6px;border-radius:6px;border:1px solid #ccd;background:#f5f6ff;color:#2c2e43;cursor:pointer;">
           <option value="windfinder" selected>Windfinder GFS — Stanley Point / Devonport</option>
+          <option value="openmeteo">Open-Meteo — Stanley Point / Devonport</option>
+          <option value="openweather">OpenWeather — Stanley Point / Devonport</option>
           <option value="weathercloud">Devonport – Davis VP2 (Weathercloud) [live station]</option>
           <option value="weatherlink">Auckland – WeatherLink ARKHQ [live station]</option>
         </select>
@@ -894,7 +896,7 @@
         <span class="source-chip">Source: <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank" rel="noopener noreferrer">Windfinder / GFS</a></span>
         <span class="status-chip status-chip-modelled">📡 MODELLED</span>
       </div>
-      <div style="font-size:0.72rem;opacity:0.65;margin-bottom:4px;" id="chart-location-label">📡 Windfinder / GFS — Stanley Point / Devonport (3-hourly, 13km model)</div>
+      <div style="font-size:0.72rem;opacity:0.65;margin-bottom:4px;" id="chart-location-label">📡 Windfinder / GFS — Stanley Point / Devonport (3-hourly, 13km model). Fallbacks: Open-Meteo and OpenWeather</div>
       <div class="chart-wrap">
         <canvas id="wind-chart"></canvas>
       </div>
@@ -930,6 +932,7 @@
       <div style="font-size:0.76rem;line-height:1.45;opacity:0.88;display:grid;gap:6px;">
         <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — GFS model, Stanley Point / Devonport (13km resolution, 3-hourly) <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
         <div style="opacity:0.7;font-size:0.72rem;padding-left:8px;">⚠️ This is a forecast model, not a live weather station. Data updates every 6 hours with each GFS model run.</div>
+        <div><b>Additional model sources:</b> Open-Meteo and OpenWeather for cross-checking Stanley Point / Devonport conditions</div>
         <div><b>Live station fallbacks:</b> <a href="https://app.weathercloud.net/d0816548764" target="_blank">Weathercloud Devonport</a> (Davis VP2) · <a href="https://www.weatherlink.com/embeddablePage/show/3f5b1b7c23064def84b8b87f51dfc094/wide" target="_blank">WeatherLink ARKHQ</a> — selectable via dropdown above</div>
         <div><b>Tides:</b> Live Auckland tide table from tide-forecast.com plus an approximate flood/ebb set overlay for tactical context (not navigation grade)</div>
         <div><b>Race marks / buoy positions:</b> Auckland Transport harbour racing buoys chart</div>
@@ -1176,6 +1179,7 @@ let windChart = null;
 
 // Weathercloud device ID for Devonport station (Davis Vantage Pro2, SW Hauraki Gulf)
 const WC_DEVICE_ID = '0816548764';
+const OPENWEATHER_API_KEY = window.OPENWEATHER_API_KEY || '';
 
 function setWeatherUnavailable(message = 'Weather data unavailable') {
   const el = document.getElementById('sailing-status');
@@ -1249,6 +1253,50 @@ async function tryWeathercloudStation() {
   };
 }
 
+async function tryOpenMeteoStation() {
+  const url = 'https://api.open-meteo.com/v1/forecast?' +
+    'latitude=-36.831&longitude=174.791' +
+    '&current=temperature_2m,wind_speed_10m,wind_direction_10m,wind_gusts_10m' +
+    '&wind_speed_unit=kn' +
+    '&timezone=Pacific%2FAuckland';
+  const data = await fetchJsonWithTimeout(url, 12000);
+  const current = data?.current;
+  if (!current || current.wind_speed_10m === undefined) throw new Error('No Open-Meteo current wind data');
+
+  return {
+    windKn: parseFloat(current.wind_speed_10m ?? 0),
+    gustKn: parseFloat(current.wind_gusts_10m ?? current.wind_speed_10m ?? 0),
+    dir: normalizeStationWindDir(current.wind_direction_10m ?? 0),
+    temp: parseFloat(current.temperature_2m ?? 0),
+    obsTime: current.time ? new Date(current.time) : new Date(),
+    source: 'Open-Meteo',
+    isModelled: true,
+  };
+}
+
+async function tryOpenWeatherStation() {
+  if (!OPENWEATHER_API_KEY) throw new Error('OpenWeather API key not configured');
+  const url = 'https://api.openweathermap.org/data/2.5/weather?' +
+    'lat=-36.831&lon=174.791' +
+    '&units=metric' +
+    '&appid=' + encodeURIComponent(OPENWEATHER_API_KEY);
+  const data = await fetchJsonWithTimeout(url, 12000);
+  if (!data || !data.wind) throw new Error('No OpenWeather wind data');
+
+  const windMs = parseFloat(data.wind.speed ?? 0);
+  const gustMs = parseFloat(data.wind.gust ?? data.wind.speed ?? 0);
+  return {
+    windKn: windMs * 1.94384,
+    gustKn: gustMs * 1.94384,
+    dir: normalizeStationWindDir(data.wind.deg ?? 0),
+    temp: parseFloat(data.main?.temp ?? 0),
+    obsTime: data.dt ? new Date(data.dt * 1000) : new Date(),
+    source: 'OpenWeather',
+    isModelled: true,
+    precipPct: data.clouds?.all,
+  };
+}
+
 async function tryWeatherLinkStation() {
   const data = await fetchJsonWithTimeout('/api/weatherlink', 8000);
   if (!data || data.wind === undefined) throw new Error('No wind field');
@@ -1269,6 +1317,8 @@ async function tryWeatherLinkStation() {
 
 const STATION_DESCS = {
   windfinder:   '📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.',
+  openmeteo:    '📡 Open-Meteo forecast — Stanley Point / Devonport',
+  openweather:  '📡 OpenWeather forecast — Stanley Point / Devonport',
   weathercloud: '📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater) [live station]',
   weatherlink:  '📍 Davis station — Auckland city (WeatherLink ARKHQ) [live station]',
   auto:         '📍 Auto: Devonport primary, Auckland fallback',
@@ -1300,6 +1350,10 @@ async function fetchLiveConditions() {
 
   if (stationPref === 'windfinder') {
     try { obs = await tryWindfinderStation(); } catch(e) { console.error('Windfinder failed:', e.message); }
+  } else if (stationPref === 'openmeteo') {
+    try { obs = await tryOpenMeteoStation(); } catch(e) { console.error('Open-Meteo failed:', e.message); }
+  } else if (stationPref === 'openweather') {
+    try { obs = await tryOpenWeatherStation(); } catch(e) { console.error('OpenWeather failed:', e.message); }
   } else if (stationPref === 'weathercloud') {
     try { obs = await tryWeathercloudStation(); } catch(e) { console.error('Weathercloud failed:', e.message); }
   } else if (stationPref === 'weatherlink') {
@@ -1399,7 +1453,7 @@ async function fetchForecastChart() {
   }
 
   try {
-    // Fallback: Open-Meteo for 5-day wind forecast chart (Devonport coords)
+    // Fallback 1: Open-Meteo for 5-day wind forecast chart (Devonport coords)
     const url = 'https://api.open-meteo.com/v1/forecast?' +
       'latitude=-36.831&longitude=174.791' +
       '&hourly=wind_speed_10m,wind_gusts_10m' +
@@ -1408,15 +1462,49 @@ async function fetchForecastChart() {
       '&timezone=Pacific%2FAuckland';
 
     const resp = await fetch(url);
-    if (!resp.ok) throw new Error(`Forecast failed: ${resp.status}`);
+    if (!resp.ok) throw new Error(`Open-Meteo forecast failed: ${resp.status}`);
     const data = await resp.json();
     if (data && data.hourly) {
       buildWindChart(data.hourly);
       document.getElementById('chart-location-label').textContent =
         '📡 Open-Meteo (fallback) — Stanley Point / Devonport';
+      const srcLink = document.querySelector('#card-forecast .source-chip a');
+      if (srcLink) {
+        srcLink.href = 'https://open-meteo.com/';
+        srcLink.textContent = 'Open-Meteo';
+      }
+      document.getElementById('chart-spinner').style.display = 'none';
+      return;
     }
   } catch (e) {
-    console.error('Forecast chart failed:', e);
+    console.warn('Open-Meteo forecast chart failed, falling back to OpenWeather:', e.message);
+  }
+
+  try {
+    // Fallback 2: OpenWeather 5-day / 3-hour forecast
+    if (!OPENWEATHER_API_KEY) throw new Error('OpenWeather API key not configured');
+    const url = 'https://api.openweathermap.org/data/2.5/forecast?' +
+      'lat=-36.831&lon=174.791' +
+      '&units=metric' +
+      '&appid=' + encodeURIComponent(OPENWEATHER_API_KEY);
+    const data = await fetchJsonWithTimeout(url, 12000);
+    if (!data || !Array.isArray(data.list) || data.list.length === 0) throw new Error('No OpenWeather forecast data');
+
+    const hourly = {
+      time: data.list.map(item => item.dt_txt || new Date(item.dt * 1000).toISOString()),
+      wind_speed_10m: data.list.map(item => (parseFloat(item.wind?.speed ?? 0) * 1.94384)),
+      wind_gusts_10m: data.list.map(item => (parseFloat(item.wind?.gust ?? item.wind?.speed ?? 0) * 1.94384)),
+    };
+    buildWindChart(hourly);
+    document.getElementById('chart-location-label').textContent =
+      '📡 OpenWeather (fallback) — Stanley Point / Devonport';
+    const srcLink = document.querySelector('#card-forecast .source-chip a');
+    if (srcLink) {
+      srcLink.href = 'https://openweathermap.org/forecast5';
+      srcLink.textContent = 'OpenWeather';
+    }
+  } catch (e) {
+    console.error('Forecast chart failed across Windfinder, Open-Meteo, and OpenWeather:', e);
   }
   document.getElementById('chart-spinner').style.display = 'none';
 }
