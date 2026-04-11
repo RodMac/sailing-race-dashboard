@@ -2662,6 +2662,16 @@ function renderTactics(course, geometry = null) {
   const decisiveMark = BUOYS[decisiveLeg?.toWp?.m]?.label || 'the key leg';
   const openingCross = describeCrossCurrent(openingLeg);
   const decisiveAlong = decisiveLeg ? describeAlongCurrent(decisiveLeg) : '';
+  const harbourHint = (() => {
+    if (!geometry || !geometry.firstRealMark || currentWindDir == null) return '';
+    const start = geometry.startCoord;
+    const first = geometry.firstRealMark;
+    const dx = first.lng - start[1];
+    if (Math.abs(dx) < 0.01) return '';
+    return dx < 0
+      ? 'The left side is more inshore, so watch for land effects and pressure bends there.'
+      : 'The right side is more inshore, so watch for land effects and pressure bends there.';
+  })();
 
   let summary = '';
   if (openingLeg.type === 'upwind') summary = `First beat to ${openingMark}: prioritise clear air and only tack on real shifts.`;
@@ -2675,15 +2685,16 @@ function renderTactics(course, geometry = null) {
   if (currentTideState) {
     bullets.push(
       currentTideState.phase === 'ebb'
-        ? `Current: ebb ${currentTideState.strengthLabel}. Avoid overstanding into foul tide.`
-        : `Current: flood ${currentTideState.strengthLabel}. Stay in pressure and protect your lane.`
+        ? `Current: ebb ${currentTideState.strengthLabel}. Avoid overstanding into foul tide and value the side with less adverse set.`
+        : `Current: flood ${currentTideState.strengthLabel}. Stay in pressure, protect your lane, and use the side with the kinder push.`
     );
   }
   if (openingCross) bullets.push(`On the opener: ${openingCross}.`);
   else if (decisiveAlong) bullets.push(decisiveAlong + '.');
+  if (harbourHint) bullets.push(harbourHint);
 
   tacticsSummary.textContent = summary;
-  tacticsList.innerHTML = bullets.slice(0, 2).map(item => `
+  tacticsList.innerHTML = bullets.slice(0, 3).map(item => `
     <div class="tactic-item" style="display:block;">
       <span>${item}</span>
     </div>

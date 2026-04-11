@@ -23,13 +23,13 @@ function aucklandNowKey() {
 }
 
 export function parseTideForecastHtml(html) {
-  const dateHeaderMatch = html.match(/<th class="tide-table__day" colspan="4"[\s\S]*?<\/tr>/i);
+  const dateHeaderMatch = html.match(/<tr><th class="tide-table__day" colspan="4"[\s\S]*?<\/tr>/i);
   if (!dateHeaderMatch) throw new Error('Could not find tide date headers');
   const dates = [...dateHeaderMatch[0].matchAll(/data-date="([0-9-]+)"/g)].map((m) => m[1]);
   if (!dates.length) throw new Error('No tide dates found');
 
-  const highRowMatch = html.match(/<tr class="tide-table__separator"><td class="tide-table__part tide-table__part--high[\s\S]*?<\/tr>/i);
-  const lowRowMatch = html.match(/<tr class="tide-table__separator tide-table__separator--wide"><td class="tide-table__part tide-table__part--low[\s\S]*?<\/tr>/i);
+  const highRowMatch = html.match(/<tr class="tide-table__separator">[\s\S]*?<td class="tide-table__part tide-table__part--high[\s\S]*?<\/tr>/i);
+  const lowRowMatch = html.match(/<tr class="tide-table__separator tide-table__separator--wide">[\s\S]*?<td class="tide-table__part tide-table__part--low[\s\S]*?<\/tr>/i);
   if (!highRowMatch || !lowRowMatch) throw new Error('Could not find tide rows');
 
   const cellRegex = /<td class="tide-table__part[^>]*>([\s\S]*?)<\/td>/g;
@@ -49,12 +49,11 @@ export function parseTideForecastHtml(html) {
 
   const events = [];
 
-  // Current-day table layout on tide-forecast.com uses split columns.
-  events.push(...extractEvents(highCells[1] || '', 'High', dates[0]));
-  events.push(...extractEvents(highCells[3] || '', 'High', dates[0]));
-  events.push(...extractEvents(lowCells[2] || '', 'Low', dates[0]));
-  events.push(...extractEvents(lowCells[3] || '', 'Low', dates[0]));
-
+  // Day 0 spans 4 AM/PM cells, later days each use a single combined cell.
+  for (let i = 0; i < Math.min(4, highCells.length); i++) {
+    events.push(...extractEvents(highCells[i] || '', 'High', dates[0]));
+    events.push(...extractEvents(lowCells[i] || '', 'Low', dates[0]));
+  }
   for (let i = 1; i < dates.length; i++) {
     const cellIndex = i + 3;
     events.push(...extractEvents(highCells[cellIndex] || '', 'High', dates[i]));
