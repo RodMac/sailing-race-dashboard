@@ -326,12 +326,18 @@
     font-size: 1.2rem;
   }
   .tide-set-pill {
-    margin-top: 8px;
-    padding: 8px 10px;
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    z-index: 700;
+    max-width: 250px;
+    padding: 7px 9px;
     border-radius: 7px;
-    background: linear-gradient(135deg, rgba(46,163,242,0.11), rgba(92,102,241,0.10));
-    font-size: 0.76rem;
-    line-height: 1.45;
+    background: rgba(255,255,255,0.92);
+    backdrop-filter: blur(3px);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.12);
+    font-size: 0.72rem;
+    line-height: 1.35;
     color: #24435f;
   }
   .tide-set-pill strong {
@@ -341,31 +347,16 @@
   .tactics-summary {
     padding: 10px 12px;
     border-radius: 8px;
-    background: linear-gradient(135deg, rgba(46,163,242,0.10), rgba(44,46,67,0.06));
+    background: var(--bg);
     font-size: 0.8rem;
-    line-height: 1.45;
-    margin-bottom: 10px;
+    line-height: 1.4;
+    margin-bottom: 8px;
   }
   .tactics-list {
-    display: grid;
-    gap: 8px;
+    display: none;
   }
   .tactic-item {
-    padding: 9px 10px;
-    border-radius: 8px;
-    background: var(--bg);
-    border-left: 3px solid var(--blue);
-  }
-  .tactic-item strong {
-    display: block;
-    font-size: 0.74rem;
-    margin-bottom: 3px;
-  }
-  .tactic-item span {
-    display: block;
-    font-size: 0.77rem;
-    line-height: 1.42;
-    opacity: 0.9;
+    display: none;
   }
 
   .map-control-stack {
@@ -797,10 +788,8 @@
         </div>
         <select id="wx-station-select" onchange="onStationChange()" style="font-size:0.72rem;padding:3px 6px;border-radius:6px;border:1px solid #ccd;background:#f5f6ff;color:#2c2e43;cursor:pointer;">
           <option value="openmeteo" selected>Open-Meteo — Stanley Point / Devonport [model]</option>
-          <option value="weathercloud">Devonport – Davis VP2 (Weathercloud) [live station]</option>
-          <option value="weatherlink">Auckland – WeatherLink ARKHQ [live station]</option>
           <option value="windfinder">Windfinder GFS — Stanley Point / Devonport [model]</option>
-          <option value="openweather">OpenWeather — Stanley Point / Devonport [blended/modelled]</option>
+          <option value="openweather">OpenWeather — Stanley Point / Devonport [regional API]</option>
         </select>
       </div>
       <div style="margin-bottom:6px;font-size:0.75rem;opacity:0.65;" id="wx-station-desc">
@@ -932,8 +921,8 @@
       <div style="font-size:0.76rem;line-height:1.45;opacity:0.88;display:grid;gap:6px;">
         <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — GFS model, Stanley Point / Devonport (13km resolution, 3-hourly) <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
         <div style="opacity:0.7;font-size:0.72rem;padding-left:8px;">⚠️ This is a forecast model, not a live weather station. Data updates every 6 hours with each GFS model run.</div>
-        <div><b>Live wind sources:</b> <a href="https://app.weathercloud.net/d0816548764" target="_blank">Weathercloud Devonport</a> (Davis VP2) · <a href="https://www.weatherlink.com/embeddablePage/show/3f5b1b7c23064def84b8b87f51dfc094/wide" target="_blank">WeatherLink ARKHQ</a> — these are the real observation feeds to prefer</div>
-        <div><b>Model cross-check sources:</b> Open-Meteo and OpenWeather are available for comparison, but they are not local live station feeds</div>
+        <div><b>Wind sources:</b> Open-Meteo and Windfinder are the main usable sources right now</div>
+        <div><b>OpenWeather:</b> regional API data, useful as a cross-check when active, but not a local live station feed</div>
         <div><b>Tides:</b> Live Auckland tide table from tide-forecast.com plus an approximate flood/ebb set overlay for tactical context (not navigation grade)</div>
         <div><b>Race marks / buoy positions:</b> Auckland Transport harbour racing buoys chart</div>
         <div><b>Courses / roundings:</b> BBYC 2025–2026 Mid-Week & Winter General Course Sheet <span class="status-chip status-chip-static" style="font-size:0.65rem;padding:1px 6px;">STATIC</span></div>
@@ -1341,10 +1330,8 @@ async function tryWeatherLinkStation() {
 const STATION_DESCS = {
   windfinder:   '📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.',
   openmeteo:    '📡 Open-Meteo current conditions are model-derived, not a live station feed.',
-  openweather:  '📡 OpenWeather current conditions are blended/model-driven, not a local live station feed.',
-  weathercloud: '📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater) [live station]',
-  weatherlink:  '📍 Davis station — Auckland city (WeatherLink ARKHQ) [live station]',
-  auto:         '📍 Auto: Devonport primary, Auckland fallback',
+  openweather:  '📡 OpenWeather regional API data, not a local live station feed.',
+  auto:         '📍 Auto fallback across available sources',
 };
 
 function updateDataTypeChip(isModelled) {
@@ -1377,16 +1364,10 @@ async function fetchLiveConditions() {
     try { obs = await tryOpenMeteoStation(); } catch(e) { console.error('Open-Meteo failed:', e.message); }
   } else if (stationPref === 'openweather') {
     try { obs = await tryOpenWeatherStation(); } catch(e) { console.error('OpenWeather failed:', e.message); }
-  } else if (stationPref === 'weathercloud') {
-    try { obs = await tryWeathercloudStation(); } catch(e) { console.error('Weathercloud failed:', e.message); }
-  } else if (stationPref === 'weatherlink') {
-    try { obs = await tryWeatherLinkStation(); } catch(e) { console.error('WeatherLink failed:', e.message); }
   } else {
     // Auto fallback order: prefer best currently-usable source, skipping bad data.
     const attempts = [
       ['openmeteo', tryOpenMeteoStation],
-      ['weathercloud', tryWeathercloudStation],
-      ['weatherlink', tryWeatherLinkStation],
       ['windfinder', tryWindfinderStation],
       ['openweather', tryOpenWeatherStation],
     ];
@@ -1854,8 +1835,8 @@ async function computeTides() {
     const tideSetPill = document.getElementById('tide-set-pill');
     if (tideSetPill) {
       tideSetPill.innerHTML = tideState
-        ? `<strong>${tideState.vector.shortLabel}</strong> — ${tideState.strengthLabel}. Approx tactical set only, not navigation-grade current.`
-        : 'Approx tactical tide set unavailable.';
+        ? `<strong>${tideState.vector.shortLabel}</strong> ${tideState.strengthLabel}`
+        : 'Tide set unavailable';
     }
 
     if (activeCourseId !== null) {
@@ -2661,79 +2642,35 @@ function renderTactics(course, geometry = null) {
   const legs = buildLegsForTactics(tacticCoords, course);
   const openingLeg = legs[0];
   const decisiveLeg = [...legs].sort((a, b) => b.distanceNm - a.distanceNm)[0] || openingLeg;
-  const finishLeg = legs[legs.length - 1] || openingLeg;
   const windText = currentWindDir == null
-    ? 'waiting for live wind'
+    ? 'wind loading'
     : `${directionText(currentWindDir)} ${Math.round(currentWindDir)}° at ${currentWindSpeed.toFixed(1)}kn`;
   const tideText = currentTideState
-    ? `${currentTideState.vector.shortLabel.toLowerCase()} (${currentTideState.strengthLabel})`
-    : 'tide set loading';
+    ? `${currentTideState.vector.shortLabel.toLowerCase()} ${currentTideState.strengthLabel}`
+    : 'tide loading';
 
   tacticsMeta.textContent = `${ALL_SERIES[currentSeries].label} • ${windText} • ${tideText}`;
 
   if (!openingLeg) {
-    tacticsSummary.textContent = 'Pick a course to get a live tactical read.';
+    tacticsSummary.textContent = 'Pick a course to get a short tactical note.';
     tacticsList.innerHTML = '';
     return;
   }
 
-  const openingMark = BUOYS[openingLeg.toWp?.m]?.label || 'the first mark';
-  const decisiveMark = BUOYS[decisiveLeg.toWp?.m]?.label || 'the next key mark';
-  const finishMark = BUOYS[finishLeg.toWp?.m]?.label || 'the finish';
-  const openingMode = openingLeg.type === 'upwind'
-    ? 'opening beat'
-    : openingLeg.type === 'reach'
-      ? 'opening reach'
-      : 'opening run';
-  const openingCross = describeCrossCurrent(openingLeg);
-  const decisiveAlong = describeAlongCurrent(decisiveLeg);
-  const finishCross = describeCrossCurrent(finishLeg);
-  const tideEdge = currentTideState
-    ? (currentTideState.phase === 'flood'
-      ? 'Flood should reward the harbour-side lane when you can stay in pressure.'
-      : 'Ebb should reward staying out in fair current and not overstanding into adverse water.')
-    : 'Tide read will sharpen once live tide data lands.';
+  let note = '';
+  if (openingLeg.type === 'upwind') note = 'Prioritise clear air on the first beat.';
+  else if (openingLeg.type === 'reach') note = 'First leg looks like a reach, prioritise pace over tricks.';
+  else note = `First leg is downwind, favour the ${openingLeg.poleLabel?.toLowerCase() || 'pressure'} side.`;
 
-  tacticsSummary.innerHTML = `<strong>${course.name}</strong> shapes up as a ${openingMode} in ${windText}. ${tideEdge}`;
+  if (decisiveLeg && decisiveLeg.distanceNm >= 1.2) {
+    note += ` Biggest gains should come on the ${decisiveLeg.type} leg.`;
+  }
+  if (currentTideState && currentTideState.strength >= 0.72) {
+    note += ` ${currentTideState.phase === 'ebb' ? 'Strong ebb, avoid overstanding into bad current.' : 'Strong flood, stay in pressure and protect lane.'}`;
+  }
 
-  const items = [
-    {
-      title: 'Win the first leg',
-      body: openingLeg.type === 'upwind'
-        ? `Treat the leg to ${openingMark} like a lane fight: protect clear air early, tack on real headers, and arrive set up for the ${openingLeg.toWp?.r === 'P' ? 'port' : openingLeg.toWp?.r === 'S' ? 'starboard' : 'next'} rounding.`
-        : openingLeg.type === 'reach'
-          ? `The reach to ${openingMark} is about pace and low-disturbance air. Sail fast first, then squeeze for lane once you are clear.`
-          : `The run to ${openingMark} is a mode leg. Get the kite stable, commit to the ${openingLeg.poleLabel?.toLowerCase() || 'pressure'} side early, and avoid a dirty-air blanket.`
-            + (openingCross ? ` Also remember: ${openingCross}.` : ''),
-    },
-    {
-      title: 'Where the race should break open',
-      body: `The longest leverage leg is toward ${decisiveMark} (${decisiveLeg.distanceNm.toFixed(1)}nm). Expect that segment to decide gains.`
-        + (decisiveLeg.type === 'upwind' ? ' Bank only on meaningful shifts; do not burn distance on speculative tacks.' : '')
-        + (decisiveLeg.type === 'reach' ? ' Keep the boat pressed and be ready to heat up for pressure lines.' : '')
-        + (decisiveLeg.type === 'kite' ? ` If you can soak with ${decisiveLeg.poleLabel?.toLowerCase() || 'the correct pole side'} and stay in pressure, that is the passing lane.` : '')
-        + (decisiveAlong ? ` ${decisiveAlong}.` : ''),
-    },
-    {
-      title: 'Use the tide, don’t fight it',
-      body: currentTideState
-        ? `Approx ${currentTideState.vector.shortLabel.toLowerCase()} is ${currentTideState.strengthLabel}. On this course, think in terms of current gates: find the side that lets you hold a clean lane without being washed past laylines.`
-          + (openingCross ? ` On the opener, ${openingCross}.` : '')
-        : 'Live tide set not loaded yet, so keep the first run/beat conservative until the current picture is clearer.',
-    },
-    {
-      title: 'Close the race cleanly',
-      body: `Into ${finishMark}, keep the final transition simple: round tidy, protect the inside on overlaps, and value a no-mistakes exit over one heroic low-percentage move.`
-        + (finishCross ? ` Final-leg reminder: ${finishCross}.` : ''),
-    },
-  ];
-
-  tacticsList.innerHTML = items.map(item => `
-    <div class="tactic-item">
-      <strong>${item.title}</strong>
-      <span>${item.body}</span>
-    </div>
-  `).join('');
+  tacticsSummary.textContent = note;
+  tacticsList.innerHTML = '';
 }
 
 function redrawActiveCourseIfImplicationsChanged(reason = 'Updated') {
