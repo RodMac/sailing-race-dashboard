@@ -28,13 +28,15 @@ export function parseTideForecastHtml(html) {
   const dates = [...dateHeaderMatch[0].matchAll(/data-date="([0-9-]+)"/g)].map((m) => m[1]);
   if (!dates.length) throw new Error('No tide dates found');
 
-  const highRowMatch = html.match(/<tr class="tide-table__separator">[\s\S]*?<td class="tide-table__part tide-table__part--high[\s\S]*?<\/tr>/i);
-  const lowRowMatch = html.match(/<tr class="tide-table__separator tide-table__separator--wide">[\s\S]*?<td class="tide-table__part tide-table__part--low[\s\S]*?<\/tr>/i);
+  const highRowMatch = html.match(/<tr class="tide-table__separator">[\s\S]*?<td class="tide-table__part tide-table__part--high[\s\S]*?<\/tr><tr class="tide-table__separator tide-table__separator--wide">/i);
+  const lowRowMatch = html.match(/<tr class="tide-table__separator tide-table__separator--wide">[\s\S]*?<td class="tide-table__part tide-table__part--low[\s\S]*?<\/tr><tr class="tide-table__separator">/i);
   if (!highRowMatch || !lowRowMatch) throw new Error('Could not find tide rows');
 
   const cellRegex = /<td class="tide-table__part[^>]*>([\s\S]*?)<\/td>/g;
-  const highCells = [...highRowMatch[0].matchAll(cellRegex)].map((m) => m[1]);
-  const lowCells = [...lowRowMatch[0].matchAll(cellRegex)].map((m) => m[1]);
+  const highRow = highRowMatch[0].replace(/<\/tr><tr class="tide-table__separator tide-table__separator--wide">$/i, '</tr>');
+  const lowRow = lowRowMatch[0].replace(/<\/tr><tr class="tide-table__separator">$/i, '</tr>');
+  const highCells = [...highRow.matchAll(cellRegex)].map((m) => m[1]);
+  const lowCells = [...lowRow.matchAll(cellRegex)].map((m) => m[1]);
 
   const extractEvents = (cellHtml, type, date) => {
     const matches = [...cellHtml.matchAll(/<span class="tide-time__time[^>]*>\s*([^<]+)<\/span><span class="tide-time__height">\s*([^<]+)/g)];
