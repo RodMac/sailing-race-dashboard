@@ -796,15 +796,15 @@
           <span class="status-chip status-chip-modelled status-chip-modelled-primary" id="wx-data-type-chip">📡 MODELLED</span>
         </div>
         <select id="wx-station-select" onchange="onStationChange()" style="font-size:0.72rem;padding:3px 6px;border-radius:6px;border:1px solid #ccd;background:#f5f6ff;color:#2c2e43;cursor:pointer;">
-          <option value="windfinder" selected>Windfinder GFS — Stanley Point / Devonport</option>
-          <option value="openmeteo">Open-Meteo — Stanley Point / Devonport</option>
-          <option value="openweather">OpenWeather — Stanley Point / Devonport</option>
-          <option value="weathercloud">Devonport – Davis VP2 (Weathercloud) [live station]</option>
+          <option value="weathercloud" selected>Devonport – Davis VP2 (Weathercloud) [live station]</option>
           <option value="weatherlink">Auckland – WeatherLink ARKHQ [live station]</option>
+          <option value="windfinder">Windfinder GFS — Stanley Point / Devonport [model]</option>
+          <option value="openmeteo">Open-Meteo — Stanley Point / Devonport [model]</option>
+          <option value="openweather">OpenWeather — Stanley Point / Devonport [blended/modelled]</option>
         </select>
       </div>
       <div style="margin-bottom:6px;font-size:0.75rem;opacity:0.65;" id="wx-station-desc">
-        📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.
+        📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater) [live station]
       </div>
       <div class="conditions-grid">
         <div class="cond-item">
@@ -932,8 +932,8 @@
       <div style="font-size:0.76rem;line-height:1.45;opacity:0.88;display:grid;gap:6px;">
         <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — GFS model, Stanley Point / Devonport (13km resolution, 3-hourly) <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
         <div style="opacity:0.7;font-size:0.72rem;padding-left:8px;">⚠️ This is a forecast model, not a live weather station. Data updates every 6 hours with each GFS model run.</div>
-        <div><b>Additional model sources:</b> Open-Meteo and OpenWeather for cross-checking Stanley Point / Devonport conditions</div>
-        <div><b>Live station fallbacks:</b> <a href="https://app.weathercloud.net/d0816548764" target="_blank">Weathercloud Devonport</a> (Davis VP2) · <a href="https://www.weatherlink.com/embeddablePage/show/3f5b1b7c23064def84b8b87f51dfc094/wide" target="_blank">WeatherLink ARKHQ</a> — selectable via dropdown above</div>
+        <div><b>Live wind sources:</b> <a href="https://app.weathercloud.net/d0816548764" target="_blank">Weathercloud Devonport</a> (Davis VP2) · <a href="https://www.weatherlink.com/embeddablePage/show/3f5b1b7c23064def84b8b87f51dfc094/wide" target="_blank">WeatherLink ARKHQ</a> — these are the real observation feeds to prefer</div>
+        <div><b>Model cross-check sources:</b> Open-Meteo and OpenWeather are available for comparison, but they are not local live station feeds</div>
         <div><b>Tides:</b> Live Auckland tide table from tide-forecast.com plus an approximate flood/ebb set overlay for tactical context (not navigation grade)</div>
         <div><b>Race marks / buoy positions:</b> Auckland Transport harbour racing buoys chart</div>
         <div><b>Courses / roundings:</b> BBYC 2025–2026 Mid-Week & Winter General Course Sheet <span class="status-chip status-chip-static" style="font-size:0.65rem;padding:1px 6px;">STATIC</span></div>
@@ -1317,8 +1317,8 @@ async function tryWeatherLinkStation() {
 
 const STATION_DESCS = {
   windfinder:   '📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.',
-  openmeteo:    '📡 Open-Meteo forecast — Stanley Point / Devonport',
-  openweather:  '📡 OpenWeather forecast — Stanley Point / Devonport',
+  openmeteo:    '📡 Open-Meteo current conditions are model-derived, not a live station feed.',
+  openweather:  '📡 OpenWeather current conditions are blended/model-driven, not a local live station feed.',
   weathercloud: '📍 Davis Vantage Pro2 — Devonport, SW Hauraki Gulf (~2km from Bayswater) [live station]',
   weatherlink:  '📍 Davis station — Auckland city (WeatherLink ARKHQ) [live station]',
   auto:         '📍 Auto: Devonport primary, Auckland fallback',
