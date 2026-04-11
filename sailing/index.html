@@ -1170,6 +1170,7 @@ let windChart = null;
 // Weathercloud device ID for Devonport station (Davis Vantage Pro2, SW Hauraki Gulf)
 const WC_DEVICE_ID = '0816548764';
 const METSERVICE_API_KEY = 'LPF8QZCHS11VWeL5HJmjTF';
+const METSERVICE_POINT_URL = 'https://forecast-v2.metoceanapi.com/point/time';
 
 function setWeatherUnavailable(message = 'Weather data unavailable') {
   const el = document.getElementById('sailing-status');
@@ -1288,39 +1289,55 @@ async function tryOpenMeteoStation() {
   };
 }
 
-async function tryMetServiceStation() {
+async function fetchMetServiceSeries(hoursAhead = 12) {
   if (!METSERVICE_API_KEY) throw new Error('MetService API key not configured');
 
-  const url = 'https://point-forecast-api.metservice.com/point?' +
-    'lat=-36.831&lon=174.791' +
-    '&variables=wind.speed,wind.speed.gust,wind.direction,air.temperature.at-2m,precipitation.probability';
+  const from = new Date();
+  from.setUTCMinutes(0, 0, 0);
+  const to = new Date(from.getTime() + (hoursAhead * 60 * 60 * 1000));
 
-  const data = await fetchJsonWithTimeout(url, 12000, {
+  const params = new URLSearchParams({
+    lat: '-36.831',
+    lon: '174.791',
+    variables: 'wind.speed.at-10m,wind.speed.gust.at-10m,wind.direction.at-10m,air.temperature.at-2m',
+    interval: '1h',
+    from: from.toISOString(),
+    to: to.toISOString(),
+  });
+
+  const data = await fetchJsonWithTimeout(`${METSERVICE_POINT_URL}?${params.toString()}`, 12000, {
     headers: {
       'x-api-key': METSERVICE_API_KEY,
       'Accept': 'application/json',
     },
   });
 
-  const first = data?.data?.points?.[0]?.forecast?.[0] || data?.points?.[0]?.forecast?.[0] || data?.forecast?.[0] || null;
-  if (!first) throw new Error('No MetService forecast data');
-
-  const windMs = parseFloat(first['wind.speed'] ?? first.windSpeed ?? first.wind_speed ?? 0);
-  const gustMs = parseFloat(first['wind.speed.gust'] ?? first.windSpeedGust ?? first.wind_gust ?? windMs);
-  const windDir = parseFloat(first['wind.direction'] ?? first.windDirection ?? first.wind_direction ?? 0);
-  const temp = parseFloat(first['air.temperature.at-2m'] ?? first.airTemperatureAt2m ?? first.temperature ?? 0);
-  const precip = parseFloat(first['precipitation.probability'] ?? first.precipitationProbability ?? first.precipitation_probability ?? NaN);
-  const obsTimeRaw = first.time || first.validTime || first.forecastTime;
+  const times = data?.dimensions?.time?.data || [];
+  const vars = data?.variables || {};
+  if (!times.length || !vars['wind.speed.at-10m']?.data?.length) throw new Error('No MetService forecast data');
 
   return {
-    windKn: windMs * 1.94384,
-    gustKn: gustMs * 1.94384,
-    dir: normalizeStationWindDir(windDir),
-    temp,
-    obsTime: obsTimeRaw ? new Date(obsTimeRaw) : new Date(),
+    times,
+    windMs: vars['wind.speed.at-10m']?.data || [],
+    gustMs: vars['wind.speed.gust.at-10m']?.data || [],
+    dirDeg: vars['wind.direction.at-10m']?.data || [],
+    tempK: vars['air.temperature.at-2m']?.data || [],
+  };
+}
+
+async function tryMetServiceStation() {
+  const series = await fetchMetServiceSeries(12);
+  const idx = 0;
+  const tempK = parseFloat(series.tempK[idx] ?? NaN);
+
+  return {
+    windKn: parseFloat(series.windMs[idx] ?? 0) * 1.94384,
+    gustKn: parseFloat(series.gustMs[idx] ?? series.windMs[idx] ?? 0) * 1.94384,
+    dir: normalizeStationWindDir(series.dirDeg[idx] ?? 0),
+    temp: Number.isFinite(tempK) ? (tempK - 273.15) : undefined,
+    obsTime: series.times[idx] ? new Date(series.times[idx]) : new Date(),
     source: 'MetService Point Forecast',
     isModelled: true,
-    precipPct: Number.isFinite(precip) ? precip : undefined,
   };
 }
 
@@ -1479,31 +1496,19 @@ async function fetchForecastChart() {
   }
 
   try {
-    const url = 'https://point-forecast-api.metservice.com/point?' +
-      'lat=-36.831&lon=174.791' +
-      '&variables=wind.speed,wind.speed.gust' +
-      '&timeStep=hourly';
-
-    const data = await fetchJsonWithTimeout(url, 12000, {
-      headers: {
-        'x-api-key': METSERVICE_API_KEY,
-        'Accept': 'application/json',
-      },
-    });
-
-    const forecast = data?.data?.points?.[0]?.forecast || data?.points?.[0]?.forecast || data?.forecast || [];
-    if (Array.isArray(forecast) && forecast.length) {
+    const series = await fetchMetServiceSeries(120);
+    if (Array.isArray(series.times) && series.times.length) {
       const hourly = {
-        time: forecast.map(item => item.time || item.validTime || item.forecastTime).filter(Boolean),
-        wind_speed_10m: forecast.map(item => (parseFloat(item['wind.speed'] ?? item.windSpeed ?? item.wind_speed ?? 0) * 1.94384)),
-        wind_gusts_10m: forecast.map(item => (parseFloat(item['wind.speed.gust'] ?? item.windSpeedGust ?? item.wind_gust ?? item['wind.speed'] ?? 0) * 1.94384)),
+        time: series.times,
+        wind_speed_10m: series.windMs.map(v => parseFloat(v ?? 0) * 1.94384),
+        wind_gusts_10m: series.gustMs.map(v => parseFloat(v ?? 0) * 1.94384),
       };
       buildWindChart(hourly);
       document.getElementById('chart-location-label').textContent =
         '📡 MetService Point Forecast — Stanley Point / Devonport';
       const srcLink = document.querySelector('#card-forecast .source-chip a');
       if (srcLink) {
-        srcLink.href = 'https://data.metservice.com/product/point-forecast-api';
+        srcLink.href = 'https://developer.metservice.com/docs/api-catalog/point-forecast-api/';
         srcLink.textContent = 'MetService Point Forecast';
       }
       document.getElementById('chart-spinner').style.display = 'none';
