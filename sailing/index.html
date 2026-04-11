@@ -1206,6 +1206,25 @@ function isStationAlive(data) {
   return true;
 }
 
+function isMeaningfulObservation(obs) {
+  if (!obs) return false;
+  const windKn = Number(obs.windKn);
+  const gustKn = Number(obs.gustKn);
+  const temp = Number(obs.temp);
+  const dir = Number(obs.dir);
+
+  const hasWind = Number.isFinite(windKn) && windKn > 0;
+  const hasGust = Number.isFinite(gustKn) && gustKn > 0;
+  const hasTemp = Number.isFinite(temp) && temp > 0;
+  const hasDir = Number.isFinite(dir) && dir >= 0 && dir <= 360;
+
+  // Reject obvious filler: everything empty/zero, or calm+zero+no usable context.
+  if (!hasWind && !hasGust && !hasTemp) return false;
+  if (!hasWind && !hasGust && hasTemp && !hasDir) return false;
+
+  return true;
+}
+
 async function fetchJsonWithTimeout(url, timeoutMs = 8000) {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
@@ -1243,7 +1262,7 @@ async function tryWeathercloudStation() {
   if (!isStationAlive(data)) throw new Error('Weathercloud station offline/stale');
 
   // wspd/wspdhi in m/s → knots
-  return {
+  const obs = {
     windKn: (data.wspdavg ?? data.wspd ?? 0) * 1.94384,
     gustKn: (data.wspdhi ?? data.wspd ?? 0) * 1.94384,
     dir: normalizeStationWindDir(data.wdiravg ?? data.wdir ?? 0),
@@ -1251,6 +1270,8 @@ async function tryWeathercloudStation() {
     obsTime: data.epoch ? new Date(data.epoch * 1000) : new Date(),
     source: 'Devonport (Weathercloud)',
   };
+  if (!isMeaningfulObservation(obs)) throw new Error('Weathercloud returned empty/filler data');
+  return obs;
 }
 
 async function tryOpenMeteoStation() {
@@ -1305,7 +1326,7 @@ async function tryWeatherLinkStation() {
   // wind/gust in km/h → knots
   const windKmh = parseFloat(data.wind ?? 0);
   const gustKmh = parseFloat(data.gust ?? 0);
-  return {
+  const obs = {
     windKn: windKmh / 1.852,
     gustKn: gustKmh / 1.852,
     dir: normalizeStationWindDir(data.windDirection ?? 0),
@@ -1313,6 +1334,8 @@ async function tryWeatherLinkStation() {
     obsTime: data.lastReceived ? new Date(data.lastReceived) : new Date(),
     source: 'Auckland (WeatherLink)',
   };
+  if (!isMeaningfulObservation(obs)) throw new Error('WeatherLink returned empty/filler data');
+  return obs;
 }
 
 const STATION_DESCS = {
