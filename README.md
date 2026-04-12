@@ -1,6 +1,6 @@
 # BBYC Sailing Race Dashboard
 
-A live race-day conditions dashboard for **Bayswater Boating Club** (BBYC), built as a static site with serverless API proxies. Displays real-time and forecast wind, tides, a course map, and tactical commentary — all in a single-page layout optimised for tablet use on a club screen or race officer's device.
+A live race-day conditions dashboard for **Bucklands Beach Yacht Club** (BBYC), built as a static site with serverless API proxies. Displays real-time and forecast wind, tides, a course map, and tactical commentary — all in a single-page layout optimised for tablet use on a club screen or race officer's device.
 
 **Live site:** [digitalworks.nz/sailing/](https://digitalworks.nz/sailing/)
 
