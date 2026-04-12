@@ -327,10 +327,11 @@
   }
   .tide-set-pill {
     position: absolute;
-    right: 14px;
+    left: 50%;
     bottom: 14px;
+    transform: translateX(-50%);
     z-index: 700;
-    max-width: 220px;
+    max-width: min(260px, calc(100% - 28px));
     padding: 7px 9px;
     border-radius: 7px;
     background: rgba(255,255,255,0.92);
@@ -354,10 +355,21 @@
     margin-bottom: 8px;
   }
   .tactics-list {
-    display: none;
+    display: grid;
+    gap: 8px;
   }
   .tactic-item {
-    display: none;
+    display: block;
+    padding: 9px 10px;
+    border-radius: 8px;
+    background: var(--bg);
+    font-size: 0.77rem;
+    line-height: 1.4;
+  }
+  .tactic-item strong {
+    display: block;
+    margin-bottom: 2px;
+    color: #12314c;
   }
 
   .map-control-stack {
@@ -396,6 +408,14 @@
     font-weight: 700;
     letter-spacing: 0.35px;
     display: none;
+  }
+  #wx-station-select {
+    max-width: 100%;
+    min-width: 0;
+    width: 250px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .course-trace-head {
@@ -1169,8 +1189,6 @@ let windChart = null;
 
 // Weathercloud device ID for Devonport station (Davis Vantage Pro2, SW Hauraki Gulf)
 const WC_DEVICE_ID = '0816548764';
-const METSERVICE_API_KEY = 'LPF8QZCHS11VWeL5HJmjTF';
-const METSERVICE_POINT_URL = 'https://forecast-v2.metoceanapi.com/point/time';
 
 function setWeatherUnavailable(message = 'Weather data unavailable') {
   const el = document.getElementById('sailing-status');
@@ -1290,27 +1308,8 @@ async function tryOpenMeteoStation() {
 }
 
 async function fetchMetServiceSeries(hoursAhead = 12) {
-  if (!METSERVICE_API_KEY) throw new Error('MetService API key not configured');
-
-  const from = new Date();
-  from.setUTCMinutes(0, 0, 0);
-  const to = new Date(from.getTime() + (hoursAhead * 60 * 60 * 1000));
-
-  const params = new URLSearchParams({
-    lat: '-36.831',
-    lon: '174.791',
-    variables: 'wind.speed.at-10m,wind.speed.gust.at-10m,wind.direction.at-10m,air.temperature.at-2m',
-    interval: '1h',
-    from: from.toISOString(),
-    to: to.toISOString(),
-  });
-
-  const data = await fetchJsonWithTimeout(`${METSERVICE_POINT_URL}?${params.toString()}`, 12000, {
-    headers: {
-      'x-api-key': METSERVICE_API_KEY,
-      'Accept': 'application/json',
-    },
-  });
+  const params = new URLSearchParams({ hours: String(hoursAhead) });
+  const data = await fetchJsonWithTimeout(`/api/metservice?${params.toString()}`, 12000);
 
   const times = data?.dimensions?.time?.data || [];
   const vars = data?.variables || {};
@@ -1384,6 +1383,9 @@ function onStationChange() {
   const sel = document.getElementById('wx-station-select').value;
   const desc = document.getElementById('wx-station-desc');
   if (desc) desc.textContent = STATION_DESCS[sel] || '';
+  if (activeCourseId !== null) {
+    lastCourseImplicationSignature = '';
+  }
   fetchLiveConditions();
 }
 
@@ -1441,7 +1443,11 @@ async function fetchLiveConditions() {
   const sourceLinkEl = document.getElementById('wx-source-link');
   if (sourceLinkEl) {
     if (isModelled) {
-      sourceLinkEl.href = source.includes('MetService') ? 'https://data.metservice.com/product/point-forecast-api' : 'https://www.windfinder.com/forecast/stanley_point_devonport';
+      sourceLinkEl.href = source.includes('MetService')
+        ? 'https://developer.metservice.com/docs/api-catalog/point-forecast-api/'
+        : source.includes('Open-Meteo')
+          ? 'https://open-meteo.com/'
+          : 'https://www.windfinder.com/forecast/stanley_point_devonport';
       sourceLinkEl.textContent = source;
     } else {
       sourceLinkEl.textContent = source;
@@ -1900,16 +1906,24 @@ function roundingLabel(r) {
 }
 
 // Build the route sequence HTML for info bar
+function isStartWaypoint(markName) {
+  return markName === 'Start' || markName === 'BBYCStart';
+}
+
+function isFinishWaypoint(wp, index, waypoints) {
+  return wp.m === 'Finish' || (wp.m === 'Karaka' && index === waypoints.length - 1) || (wp.m === 'BBYCStart' && index === waypoints.length - 1);
+}
+
 function buildRouteHTML(waypoints) {
   return waypoints.map((wp, i) => {
     const buoy = BUOYS[wp.m] || BUOYS['Start'];
     const label = buoy.label;
-    const isStart = wp.m === 'Start';
-    const isFinish = wp.m === 'Finish' || (wp.m === 'Karaka' && i === waypoints.length - 1);
+    const isStart = isStartWaypoint(wp.m) && i === 0;
+    const isFinish = isFinishWaypoint(wp, i, waypoints);
     let text;
     if (isStart) {
       text = `<span class="wp-start-finish">Start</span>`;
-    } else if (wp.m === 'Finish') {
+    } else if (wp.m === 'Finish' || (wp.m === 'BBYCStart' && isFinish)) {
       text = `<span class="wp-start-finish">Finish</span>`;
     } else if (isFinish && wp.m === 'Karaka') {
       const cls = wp.r === 'P' ? 'wp-port' : wp.r === 'S' ? 'wp-stbd' : wp.r === '*' ? 'wp-flag' : 'wp-start-finish';
@@ -2345,7 +2359,7 @@ function clearCourse() {
 }
 
 function getCourseGeometry(course) {
-  const filteredWps = course.waypoints.filter(wp => wp.m !== 'Start' && wp.m !== 'Finish');
+  const filteredWps = course.waypoints.filter((wp, index, waypoints) => !isStartWaypoint(wp.m) && !isFinishWaypoint(wp, index, waypoints));
   const markTotals = {};
   filteredWps.forEach(wp => { markTotals[wp.m] = (markTotals[wp.m] || 0) + 1; });
 
@@ -2530,6 +2544,8 @@ function addArrowsAndLegColour(latlngs, windFromDeg) {
 }
 
 function buildLegsForTactics(coords, course) {
+  const tacticalWaypoints = course.waypoints.filter((wp, index, waypoints) => !isFinishWaypoint(wp, index, waypoints));
+  const markWaypoints = course.waypoints.filter((wp, index, waypoints) => !isStartWaypoint(wp.m) && !isFinishWaypoint(wp, index, waypoints));
   const legs = [];
   for (let i = 0; i < coords.length - 1; i++) {
     const from = coords[i];
@@ -2537,10 +2553,10 @@ function buildLegsForTactics(coords, course) {
     const base = currentWindDir !== null ? classifyLeg(from, to, currentWindDir) : { type: 'unknown', color: '#64748b', poleLabel: null, twa: null, legBearing: bearingBetween(from, to) };
     const fromWp = courseUsesDynamicStart(course) && i === 0
       ? { m: 'Start', r: '' }
-      : course.waypoints.filter(wp => wp.m !== 'Finish')[courseUsesDynamicStart(course) ? i : i];
+      : tacticalWaypoints[courseUsesDynamicStart(course) ? i : i];
     const toWp = courseUsesDynamicStart(course) && i === 0
-      ? course.waypoints.filter(wp => wp.m !== 'Start' && wp.m !== 'Finish')[0]
-      : course.waypoints.filter(wp => wp.m !== 'Finish')[courseUsesDynamicStart(course) ? i + 1 : i + 1];
+      ? markWaypoints[0]
+      : tacticalWaypoints[courseUsesDynamicStart(course) ? i + 1 : i + 1];
     const tideBearing = currentTideState?.vector?.bearing;
     const diff = tideBearing == null ? null : smallestAngleDiff(tideBearing, base.legBearing);
     const along = diff == null ? 0 : Math.cos(diff * Math.PI / 180);
@@ -2575,22 +2591,6 @@ function renderTideSetOverlay(allCoords) {
     map.removeLayer(tideVectorMarker);
     tideVectorMarker = null;
   }
-  if (!currentTideState || !allCoords || allCoords.length < 2) return;
-
-  const bounds = L.latLngBounds(allCoords);
-  const lat = bounds.getSouth() + (bounds.getNorth() - bounds.getSouth()) * 0.28;
-  const lng = bounds.getWest() + (bounds.getEast() - bounds.getWest()) * 0.78;
-  const arrowGlyph = currentTideState.phase === 'flood' ? '↖' : '↘';
-  const icon = L.divIcon({
-    className: '',
-    html: '<div class="tide-set-indicator" style="--tide-color:' + currentTideState.vector.color + ';opacity:' + (0.84 + currentTideState.strength * 0.12).toFixed(2) + '">'
-      + '<div class="arrow">' + arrowGlyph + '</div>'
-      + '<div class="copy"><strong>' + currentTideState.vector.shortLabel + '</strong><span>' + currentTideState.strengthLabel + ' current • approx only</span></div>'
-      + '</div>',
-    iconSize: [170, 46],
-    iconAnchor: [85, 23],
-  });
-  tideVectorMarker = L.marker([lat, lng], { icon, interactive: false, zIndexOffset: 900 }).addTo(map);
 }
 
 // Spread repeated marks by a fixed PIXEL distance (22px), converted to degrees at current zoom.
@@ -2691,6 +2691,20 @@ function renderTactics(course, geometry = null) {
   const decisiveMark = BUOYS[decisiveLeg?.toWp?.m]?.label || 'the key leg';
   const openingCross = describeCrossCurrent(openingLeg);
   const decisiveAlong = decisiveLeg ? describeAlongCurrent(decisiveLeg) : '';
+  const favouredSide = (leg) => {
+    if (!leg || !currentTideState) return null;
+    if (Math.abs(leg.crossCurrent) < 0.22) return null;
+    return leg.crossCurrent > 0 ? 'port side should stay cleaner' : 'starboard side should stay cleaner';
+  };
+  const tideLegTip = (leg) => {
+    if (!leg || !currentTideState) return '';
+    const parts = [];
+    const alongAbs = Math.abs(leg.alongCurrent);
+    const crossAbs = Math.abs(leg.crossCurrent);
+    if (alongAbs >= 0.32) parts.push(leg.alongCurrent > 0 ? 'use the push' : 'minimise time in the foul stream');
+    if (crossAbs >= 0.28) parts.push(leg.crossCurrent > 0 ? 'guard room to starboard' : 'protect room to port');
+    return parts.slice(0, 2).join(', ');
+  };
   const harbourHint = (() => {
     if (!geometry || !geometry.firstRealMark || currentWindDir == null) return '';
     const start = geometry.startCoord;
@@ -2703,31 +2717,40 @@ function renderTactics(course, geometry = null) {
   })();
 
   let summary = '';
-  if (openingLeg.type === 'upwind') summary = `First beat to ${openingMark}: prioritise clear air and only tack on real shifts.`;
-  else if (openingLeg.type === 'reach') summary = `Opening reach to ${openingMark}: sail fast first, then protect your lane.`;
-  else summary = `Opening run to ${openingMark}: commit early to the ${openingLeg.poleLabel?.toLowerCase() || 'pressure'} side and keep the boat settled.`;
+  if (openingLeg.type === 'upwind') summary = `First beat to ${openingMark}: prioritise clear air, then tack only on real gain.`;
+  else if (openingLeg.type === 'reach') summary = `Opening reach to ${openingMark}: stay fast, hold a lane, and cash in pressure.`;
+  else summary = `Opening run to ${openingMark}: commit to the pressure side early and keep the boat settled.`;
 
-  const bullets = [];
+  const summaryBits = [];
   if (decisiveLeg && decisiveLeg.distanceNm >= 1.2) {
-    bullets.push(`Best passing lane is likely the longer ${decisiveLeg.type} leg toward ${decisiveMark}.`);
+    summaryBits.push(`Longest passing chance is the ${decisiveLeg.type} leg toward ${decisiveMark}.`);
   }
   if (currentTideState) {
-    bullets.push(
-      currentTideState.phase === 'ebb'
-        ? `Current: ebb ${currentTideState.strengthLabel}. Avoid overstanding into foul tide and value the side with less adverse set.`
-        : `Current: flood ${currentTideState.strengthLabel}. Stay in pressure, protect your lane, and use the side with the kinder push.`
-    );
+    summaryBits.push(currentTideState.phase === 'ebb'
+      ? `Ebb ${currentTideState.strengthLabel}, so avoid overstanding into bad tide.`
+      : `Flood ${currentTideState.strengthLabel}, so protect the lane with the kinder push.`);
   }
-  if (openingCross) bullets.push(`On the opener: ${openingCross}.`);
-  else if (decisiveAlong) bullets.push(decisiveAlong + '.');
-  if (harbourHint) bullets.push(harbourHint);
+  if (openingCross) summaryBits.push(`Opener: ${openingCross}.`);
+  else if (decisiveAlong) summaryBits.push(decisiveAlong + '.');
+  if (harbourHint) summaryBits.push(harbourHint);
 
-  tacticsSummary.textContent = summary;
-  tacticsList.innerHTML = bullets.slice(0, 3).map(item => `
-    <div class="tactic-item" style="display:block;">
-      <span>${item}</span>
-    </div>
-  `).join('');
+  tacticsSummary.textContent = `${summary} ${summaryBits.join(' ')}`.trim();
+  tacticsList.innerHTML = legs.slice(0, 6).map((leg, index) => {
+    const target = BUOYS[leg.toWp?.m]?.label || `leg ${index + 1}`;
+    const mode = leg.type === 'upwind' ? 'Upwind' : leg.type === 'reach' ? 'Reach' : 'Run';
+    const side = favouredSide(leg);
+    const tipBits = [];
+    if (side) tipBits.push(side);
+    const currentTip = tideLegTip(leg);
+    if (currentTip) tipBits.push(currentTip);
+    if (!tipBits.length) tipBits.push(leg.type === 'upwind' ? 'sail in phase, not in traffic' : leg.type === 'reach' ? 'stay low drag and fast' : `commit to the ${leg.poleLabel?.toLowerCase() || 'pressure'} lane`);
+    return `
+      <div class="tactic-item">
+        <strong>Leg ${index + 1}, ${mode} to ${target}</strong>
+        <span>${tipBits.join(' • ')}.</span>
+      </div>
+    `;
+  }).join('');
 }
 
 function redrawActiveCourseIfImplicationsChanged(reason = 'Updated') {

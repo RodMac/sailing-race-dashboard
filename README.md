@@ -61,6 +61,7 @@ Each file is a [Cloudflare Pages Function](https://developers.cloudflare.com/pag
 | `/api/weathercloud` | `app.weathercloud.net` | Device ID `0816548764` (Devonport North Head). Requires `X-Requested-With` spoof. 2-min CF cache. |
 | `/api/weatherlink` | WeatherLink API | ARKHQ Auckland station. |
 | `/api/windfinder` | `windfinder.com` | HTML-scraped; parses `<astro-island>` JSON props for current + 3-hourly forecast. GFS model data. |
+| `/api/metservice` | MetService Point Forecast API | Server-side proxy for the MetService model feed, keeps API key out of browser code. |
 | `/api/tides` | `tide-forecast.com` | HTML-scraped; parses tide table for Auckland. 30-min CF cache. Returns 1 past + 5 upcoming events. |
 
 ### Shared Libraries (`functions/_lib/`)
@@ -75,9 +76,9 @@ Each file is a [Cloudflare Pages Function](https://developers.cloudflare.com/pag
 
 The dashboard tries sources in this order:
 
-1. **Weathercloud — Devonport North Head** (live station, preferred)
-2. **WeatherLink — ARKHQ Auckland** (live station, fallback)
-3. **Windfinder GFS** (modelled, fallback when stations are down)
+1. **MetService Point Forecast** (modelled, preferred NZ forecast feed)
+2. **Open-Meteo** (modelled cross-check)
+3. **Windfinder GFS** (modelled fallback)
 
 The active source is shown in the wind panel header.
 
@@ -104,6 +105,8 @@ The dev server runs at `http://localhost:8788` by default.
 ## Deployment
 
 The project is deployed on **Cloudflare Pages**.
+
+Set `METSERVICE_API_KEY` in Cloudflare Pages project variables/secrets before deploying so `/api/metservice` can reach the upstream API.
 
 ```bash
 npm run deploy    # wrangler pages deploy .

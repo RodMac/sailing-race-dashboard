@@ -6,6 +6,7 @@ This app is now shaped for **Cloudflare Pages + Pages Functions**:
 - `sailing/index.html` = sailing dashboard frontend
 - `functions/api/weathercloud.js` = Weathercloud proxy
 - `functions/api/weatherlink.js` = WeatherLink proxy
+- `functions/api/metservice.js` = MetService Point Forecast proxy
 - `functions/api/tides.js` = tide scraper/parser
 
 ## Local dev
@@ -28,6 +29,12 @@ That should serve the static site plus `/api/*` locally via Wrangler.
 4. Custom domain:
    - add `digitalworks.nz`
    - point DNS to Cloudflare if the domain is elsewhere
+
+## Required secret
+
+Set this Pages secret/variable before deploying:
+
+- `METSERVICE_API_KEY` = MetService Point Forecast API key
 
 ## Notes
 
