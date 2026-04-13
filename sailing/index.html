@@ -1790,11 +1790,21 @@ fetchWeather();
 // ============================================================
 // TIDES — live Auckland tide table (server-side scraped from tide-forecast.com)
 // ============================================================
+function tideEventTimestamp(event) {
+  if (!event?.date || !event?.time24) return null;
+  const ts = new Date(`${event.date}T${event.time24}:00`).getTime();
+  return Number.isFinite(ts) ? ts : null;
+}
+
 function deriveTideState(data) {
-  const past = (data.events || []).filter(e => e.past).slice(-1)[0] || null;
-  const next = data.next || null;
+  const events = data.events || [];
+  const past = events.filter(e => e.past).slice(-1)[0] || null;
+  const next = data.next || events.find(e => !e.past) || null;
   if (!next) return null;
 
+  const pastTs = tideEventTimestamp(past);
+  const nextTs = tideEventTimestamp(next);
+  const nowTs = Date.now();
   const phase = next.type === 'High' ? 'flood' : 'ebb';
   const vector = phase === 'flood'
     ? { bearing: 295, color: '#0ea5e9', shortLabel: 'Flood set ↖', longLabel: 'Flood set pushing into the harbour' }
@@ -1802,18 +1812,42 @@ function deriveTideState(data) {
 
   let strength = 0.56;
   let strengthLabel = 'steady';
-  if (past) {
-    const lastTs = new Date(`${past.date}T${past.time24}:00`).getTime();
-    const nextTs = new Date(`${next.date}T${next.time24}:00`).getTime();
-    const span = nextTs - lastTs;
-    if (span > 0) {
-      const progress = Math.min(Math.max((Date.now() - lastTs) / span, 0), 1);
-      strength = 0.32 + Math.sin(progress * Math.PI) * 0.68;
-      strengthLabel = strength >= 0.9 ? 'strongest now' : strength >= 0.72 ? 'building' : progress < 0.18 || progress > 0.82 ? 'slackening' : 'moderate';
+  let stage = 'building';
+  if (pastTs && nextTs && nextTs > pastTs) {
+    const span = nextTs - pastTs;
+    const progress = Math.min(Math.max((nowTs - pastTs) / span, 0), 1);
+    strength = 0.32 + Math.sin(progress * Math.PI) * 0.68;
+    if (progress <= 0.15) {
+      strengthLabel = 'building';
+      stage = 'building';
+    } else if (progress >= 0.85) {
+      strengthLabel = 'easing';
+      stage = 'easing';
+    } else if (strength >= 0.9) {
+      strengthLabel = 'strongest now';
+      stage = 'strongest';
+    } else if (progress < 0.5) {
+      strengthLabel = 'building';
+      stage = 'building';
+    } else {
+      strengthLabel = 'easing';
+      stage = 'easing';
     }
   }
 
-  return { phase, vector, strength, strengthLabel, next, past };
+  return {
+    phase,
+    vector,
+    strength,
+    strengthLabel,
+    stage,
+    next,
+    past,
+    nextEventTime: nextTs,
+    pastEventTime: pastTs,
+    nextEventLabel: next.type === 'High' ? 'high water' : 'low water',
+    minutesToNextTurn: nextTs ? Math.round((nextTs - nowTs) / 60000) : null,
+  };
 }
 
 async function computeTides() {
@@ -2708,21 +2742,21 @@ function renderTactics(course, geometry = null) {
 
   const formatTime = (d) => d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null;
   const nextEvent = currentTideState?.nextEventTime ? new Date(currentTideState.nextEventTime) : null;
-  const minsToTurn = nextEvent ? Math.round((nextEvent.getTime() - now.getTime()) / 60000) : null;
+  const minsToTurn = currentTideState?.minutesToNextTurn ?? (nextEvent ? Math.round((nextEvent.getTime() - now.getTime()) / 60000) : null);
   const tideStage = (() => {
     if (!currentTideState) return 'loading';
     if (minsToTurn !== null && minsToTurn <= 35) return 'close to turning';
-    if (currentTideState.strength === 'strong') return 'near strongest';
-    if (currentTideState.strength === 'building') return 'building';
-    if (currentTideState.strength === 'easing') return 'easing';
+    if (currentTideState.stage === 'strongest') return 'near strongest';
+    if (currentTideState.stage === 'building') return 'building';
+    if (currentTideState.stage === 'easing') return 'easing';
     return currentTideState.strengthLabel || 'steady';
   })();
   const tideNow = currentTideState
     ? `Tide now: ${currentTideState.phase === 'ebb' ? 'Ebbing' : 'Flooding'}, ${tideStage}, setting ${directionText(currentTideState.vector?.bearing || 0)}`
     : 'Tide now: Loading';
   const nextChange = currentTideState && nextEvent
-    ? `Next change: ${currentTideState.phase === 'ebb' ? 'Ebb' : 'Flood'} continues until ${currentTideState.nextEventLabel || 'the next turn'} at ${formatTime(nextEvent)}`
-    : 'Next change: Tide timing loading';
+    ? `Next change: ${currentTideState.phase === 'ebb' ? 'Ebb' : 'Flood'} continues until ${currentTideState.nextEventLabel || 'the next turn'} at ${formatTime(nextEvent)}, then ${currentTideState.phase === 'ebb' ? 'eases' : 'eases'}`
+    : 'Next change: Tide timing unavailable';
   const overallImpact = (() => {
     const windPart = forecastTrend
       ? forecastTrend.trend === 'easing'
