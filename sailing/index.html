@@ -898,7 +898,7 @@
     <!-- WIND FORECAST CHART -->
     <div class="card" id="card-forecast">
       <div class="card-title">
-        📈 5-Day Wind Forecast
+        📈 3-Day Wind Forecast
         <span id="chart-spinner" class="spinner"></span>
       </div>
       <div class="section-meta">
@@ -1187,9 +1187,6 @@ function normalizeStationWindDir(rawDeg) {
 // ============================================================
 let windChart = null;
 
-// Weathercloud device ID for Devonport station (Davis Vantage Pro2, SW Hauraki Gulf)
-const WC_DEVICE_ID = '0816548764';
-
 function setWeatherUnavailable(message = 'Weather data unavailable') {
   const el = document.getElementById('sailing-status');
   const icon = document.getElementById('status-icon');
@@ -1202,12 +1199,11 @@ function setWeatherUnavailable(message = 'Weather data unavailable') {
 // Validate that a station data value is real and current (not stale/offline)
 function isStationAlive(data) {
   if (!data) return false;
-  // Check station last-update age (Weathercloud: epoch field)
+  // Check model/feed freshness when a source provides a timestamp field.
   if (data.epoch) {
     const ageSec = Math.floor(Date.now() / 1000) - data.epoch;
     if (ageSec > 3600) return false; // more than 1 hour old = offline
   }
-  // WeatherLink: lastReceived field
   if (data.lastReceived) {
     const ageMs = Date.now() - data.lastReceived;
     if (ageMs > 3600000) return false;
@@ -1268,24 +1264,6 @@ async function tryWindfinderStation() {
   };
 }
 
-async function tryWeathercloudStation() {
-  const data = await fetchJsonWithTimeout('/api/weathercloud', 8000);
-  if (!data || data.wspd === undefined) throw new Error('No wspd field');
-  if (!isStationAlive(data)) throw new Error('Weathercloud station offline/stale');
-
-  // wspd/wspdhi in m/s → knots
-  const obs = {
-    windKn: (data.wspdavg ?? data.wspd ?? 0) * 1.94384,
-    gustKn: (data.wspdhi ?? data.wspd ?? 0) * 1.94384,
-    dir: normalizeStationWindDir(data.wdiravg ?? data.wdir ?? 0),
-    temp: parseFloat(data.temp ?? 0),
-    obsTime: data.epoch ? new Date(data.epoch * 1000) : new Date(),
-    source: 'Devonport (Weathercloud)',
-  };
-  if (!isMeaningfulObservation(obs)) throw new Error('Weathercloud returned empty/filler data');
-  return obs;
-}
-
 async function tryOpenMeteoStation() {
   const url = 'https://api.open-meteo.com/v1/forecast?' +
     'latitude=-36.831&longitude=174.791' +
@@ -1340,31 +1318,14 @@ async function tryMetServiceStation() {
   };
 }
 
-async function tryWeatherLinkStation() {
-  const data = await fetchJsonWithTimeout('/api/weatherlink', 8000);
-  if (!data || data.wind === undefined) throw new Error('No wind field');
-  if (!isStationAlive(data)) throw new Error('WeatherLink station offline/stale');
-
-  // wind/gust in km/h → knots
-  const windKmh = parseFloat(data.wind ?? 0);
-  const gustKmh = parseFloat(data.gust ?? 0);
-  const obs = {
-    windKn: windKmh / 1.852,
-    gustKn: gustKmh / 1.852,
-    dir: normalizeStationWindDir(data.windDirection ?? 0),
-    temp: parseFloat(data.temperature ?? 0),
-    obsTime: data.lastReceived ? new Date(data.lastReceived) : new Date(),
-    source: 'Auckland (WeatherLink)',
-  };
-  if (!isMeaningfulObservation(obs)) throw new Error('WeatherLink returned empty/filler data');
-  return obs;
-}
+let currentForecastModel = null;
+let currentForecastSeries = null;
 
 const STATION_DESCS = {
   metservice:   '📡 MetService Point Forecast is model-derived forecast data, not a live station feed.',
   windfinder:   '📡 GFS forecast model — Stanley Point / Devonport (13km resolution). Not a real weather station.',
   openmeteo:    '📡 Open-Meteo current conditions are model-derived, not a live station feed.',
-  auto:         '📍 Auto fallback across available sources',
+  auto:         '📍 Auto fallback across available model sources',
 };
 
 function updateDataTypeChip(isModelled) {
@@ -1387,6 +1348,7 @@ function onStationChange() {
     lastCourseImplicationSignature = '';
   }
   fetchLiveConditions();
+  fetchForecastChart();
 }
 
 async function fetchLiveConditions() {
@@ -1401,7 +1363,7 @@ async function fetchLiveConditions() {
   } else if (stationPref === 'openmeteo') {
     try { obs = await tryOpenMeteoStation(); } catch(e) { console.error('Open-Meteo failed:', e.message); }
   } else {
-    // Auto fallback order: prefer best currently-usable source, skipping bad data.
+    // Auto fallback order across model sources only.
     const attempts = [
       ['metservice', tryMetServiceStation],
       ['openmeteo', tryOpenMeteoStation],
@@ -1482,75 +1444,94 @@ async function fetchLiveConditions() {
 
 async function fetchForecastChart() {
   document.getElementById('chart-spinner').style.display = 'inline-block';
-  try {
-    // Try Windfinder forecast data first (already fetched via /api/windfinder)
-    const wfData = await fetchJsonWithTimeout('/api/windfinder', 12000).catch(() => null);
-    if (wfData && wfData.ok && wfData.forecast && wfData.forecast.length >= 8) {
-      buildWindChartFromWF(wfData.forecast);
-      document.getElementById('chart-location-label').textContent =
-        '📡 Windfinder / GFS — Stanley Point / Devonport (3-hourly, 13km model)';
-      const srcLink = document.querySelector('#card-forecast .source-chip a');
-      if (srcLink) {
-        srcLink.href = 'https://www.windfinder.com/forecast/stanley_point_devonport';
-        srcLink.textContent = 'Windfinder / GFS';
-      }
-      document.getElementById('chart-spinner').style.display = 'none';
-      return;
-    }
-  } catch (e) {
-    console.warn('Windfinder forecast chart failed, falling back to MetService/Open-Meteo:', e.message);
-  }
+  const selectedModel = (document.getElementById('wx-station-select') || {}).value || 'metservice';
+  const srcLink = document.querySelector('#card-forecast .source-chip a');
 
-  try {
-    const series = await fetchMetServiceSeries(120);
-    if (Array.isArray(series.times) && series.times.length) {
-      const hourly = {
+  async function loadMetServiceForecast() {
+    const series = await fetchMetServiceSeries(72);
+    if (!Array.isArray(series.times) || series.times.length < 12) throw new Error('No MetService forecast data');
+    return {
+      model: 'metservice',
+      hourly: {
         time: series.times,
         wind_speed_10m: series.windMs.map(v => parseFloat(v ?? 0) * 1.94384),
         wind_gusts_10m: series.gustMs.map(v => parseFloat(v ?? 0) * 1.94384),
-      };
-      buildWindChart(hourly);
-      document.getElementById('chart-location-label').textContent =
-        '📡 MetService Point Forecast — Stanley Point / Devonport';
-      const srcLink = document.querySelector('#card-forecast .source-chip a');
-      if (srcLink) {
-        srcLink.href = 'https://developer.metservice.com/docs/api-catalog/point-forecast-api/';
-        srcLink.textContent = 'MetService Point Forecast';
-      }
-      document.getElementById('chart-spinner').style.display = 'none';
-      return;
-    }
-  } catch (e) {
-    console.warn('MetService forecast chart failed, falling back to Open-Meteo:', e.message);
+        wind_direction_10m: series.dirDeg.map(v => parseFloat(v ?? 0)),
+      },
+      label: '📡 MetService Point Forecast — Stanley Point / Devonport',
+      href: 'https://developer.metservice.com/docs/api-catalog/point-forecast-api/',
+      linkText: 'MetService Point Forecast',
+    };
   }
 
-  try {
-    // Fallback 1: Open-Meteo for 5-day wind forecast chart (Devonport coords)
+  async function loadOpenMeteoForecast() {
     const url = 'https://api.open-meteo.com/v1/forecast?' +
       'latitude=-36.831&longitude=174.791' +
-      '&hourly=wind_speed_10m,wind_gusts_10m' +
+      '&hourly=wind_speed_10m,wind_gusts_10m,wind_direction_10m' +
       '&wind_speed_unit=kn' +
-      '&forecast_days=5' +
+      '&forecast_days=3' +
       '&timezone=Pacific%2FAuckland';
-
     const resp = await fetch(url);
     if (!resp.ok) throw new Error(`Open-Meteo forecast failed: ${resp.status}`);
     const data = await resp.json();
-    if (data && data.hourly) {
-      buildWindChart(data.hourly);
-      document.getElementById('chart-location-label').textContent =
-        '📡 Open-Meteo (fallback) — Stanley Point / Devonport';
-      const srcLink = document.querySelector('#card-forecast .source-chip a');
-      if (srcLink) {
-        srcLink.href = 'https://open-meteo.com/';
-        srcLink.textContent = 'Open-Meteo';
-      }
-      document.getElementById('chart-spinner').style.display = 'none';
-      return;
-    }
-  } catch (e) {
-    console.error('Forecast chart failed across Windfinder, MetService, and Open-Meteo:', e);
+    if (!data?.hourly?.time?.length) throw new Error('No Open-Meteo forecast data');
+    return {
+      model: 'openmeteo',
+      hourly: data.hourly,
+      label: '📡 Open-Meteo — Stanley Point / Devonport',
+      href: 'https://open-meteo.com/',
+      linkText: 'Open-Meteo',
+    };
   }
+
+  async function loadWindfinderForecast() {
+    const wfData = await fetchJsonWithTimeout('/api/windfinder', 12000);
+    if (!wfData?.ok || !wfData?.forecast || wfData.forecast.length < 8) throw new Error('No Windfinder forecast data');
+    return {
+      model: 'windfinder',
+      forecast: wfData.forecast,
+      label: '📡 Windfinder / GFS — Stanley Point / Devonport (3-hourly, 13km model)',
+      href: 'https://www.windfinder.com/forecast/stanley_point_devonport',
+      linkText: 'Windfinder / GFS',
+    };
+  }
+
+  const loaders = {
+    metservice: [loadMetServiceForecast, loadOpenMeteoForecast, loadWindfinderForecast],
+    openmeteo: [loadOpenMeteoForecast, loadMetServiceForecast, loadWindfinderForecast],
+    windfinder: [loadWindfinderForecast, loadMetServiceForecast, loadOpenMeteoForecast],
+  };
+
+  try {
+    let loaded = null;
+    for (const loader of (loaders[selectedModel] || loaders.metservice)) {
+      try {
+        loaded = await loader();
+        break;
+      } catch (err) {
+        console.warn('Forecast loader failed:', err.message);
+      }
+    }
+    if (!loaded) throw new Error('No forecast source available');
+
+    if (loaded.forecast) buildWindChartFromWF(loaded.forecast);
+    else buildWindChart(loaded.hourly);
+
+    currentForecastModel = loaded.model;
+    currentForecastSeries = loaded.forecast || loaded.hourly;
+    document.getElementById('chart-location-label').textContent = loaded.label;
+    if (srcLink) {
+      srcLink.href = loaded.href;
+      srcLink.textContent = loaded.linkText;
+    }
+    document.getElementById('chart-spinner').style.display = 'none';
+    if (activeCourseId !== null) redrawActiveCourseIfImplicationsChanged('Forecast model changed — tactics refreshed');
+    return;
+  } catch (e) {
+    console.error('Forecast chart failed across MetService, Open-Meteo, and Windfinder:', e);
+  }
+  currentForecastModel = null;
+  currentForecastSeries = null;
   document.getElementById('chart-spinner').style.display = 'none';
 }
 
@@ -1689,9 +1670,9 @@ function updateSailingStatus(bf) {
 }
 
 function buildWindChart(hourly) {
-  const times = hourly.time.slice(0, 120); // 5 days × 24h
-  const speeds = hourly.wind_speed_10m.slice(0, 120);
-  const gusts = hourly.wind_gusts_10m.slice(0, 120);
+  const times = hourly.time.slice(0, 72); // 3 days × 24h
+  const speeds = hourly.wind_speed_10m.slice(0, 72);
+  const gusts = hourly.wind_gusts_10m.slice(0, 72);
 
   // Label every 24h
   const labels = times.map((t, i) => {
@@ -2359,14 +2340,19 @@ function clearCourse() {
 }
 
 function getCourseGeometry(course) {
-  const filteredWps = course.waypoints.filter((wp, index, waypoints) => !isStartWaypoint(wp.m) && !isFinishWaypoint(wp, index, waypoints));
+  const waypoints = Array.isArray(course?.waypoints) ? course.waypoints : [];
+  const filteredWps = waypoints.filter((wp, index, allWaypoints) => !isStartWaypoint(wp.m) && !isFinishWaypoint(wp, index, allWaypoints));
   const markTotals = {};
   filteredWps.forEach(wp => { markTotals[wp.m] = (markTotals[wp.m] || 0) + 1; });
 
-  const lineCoords = filteredWps.map(wp => {
+  const markCoords = filteredWps.map(wp => {
     const b = BUOYS[wp.m];
     return b ? [b.lat, b.lng] : null;
   }).filter(Boolean);
+
+  const finishWp = waypoints.length ? waypoints[waypoints.length - 1] : null;
+  const finishBuoy = finishWp ? BUOYS[finishWp.m] : null;
+  const finishCoord = finishBuoy ? [finishBuoy.lat, finishBuoy.lng] : null;
 
   const usesDynamicStart = courseUsesDynamicStart(course);
   const firstRealMark = filteredWps[0] ? BUOYS[filteredWps[0].m] : null;
@@ -2385,7 +2371,13 @@ function getCourseGeometry(course) {
     if (buoyMarkers['Start']) buoyMarkers['Start'].setLatLng(startCoord);
   }
 
-  const animationCoords = usesDynamicStart && startCoord ? [startCoord, ...lineCoords] : [...lineCoords];
+  const displayCoords = [
+    ...(usesDynamicStart && startCoord ? [startCoord] : []),
+    ...markCoords,
+    ...(finishCoord ? [finishCoord] : []),
+  ];
+  const lineCoords = displayCoords.length >= 2 ? displayCoords : markCoords;
+  const animationCoords = [...lineCoords];
 
   return {
     filteredWps,
@@ -2393,6 +2385,7 @@ function getCourseGeometry(course) {
     lineCoords,
     firstRealMark,
     startCoord,
+    finishCoord,
     usesDynamicStart,
     animationCoords,
   };
@@ -2544,7 +2537,7 @@ function addArrowsAndLegColour(latlngs, windFromDeg) {
 }
 
 function buildLegsForTactics(coords, course) {
-  const tacticalWaypoints = course.waypoints.filter((wp, index, waypoints) => !isFinishWaypoint(wp, index, waypoints));
+  const tacticalWaypoints = course.waypoints;
   const markWaypoints = course.waypoints.filter((wp, index, waypoints) => !isStartWaypoint(wp.m) && !isFinishWaypoint(wp, index, waypoints));
   const legs = [];
   for (let i = 0; i < coords.length - 1; i++) {
@@ -2648,6 +2641,32 @@ function drawWaypointMarkers() {
   });
 }
 
+function getForecastTrendSummary() {
+  const model = currentForecastModel;
+  const data = currentForecastSeries;
+  if (!model || !data) return null;
+
+  let times = [];
+  let speeds = [];
+  if (Array.isArray(data.forecast)) {
+    times = data.forecast.map(f => f.dtl);
+    speeds = data.forecast.map(f => Number(f.windKn ?? 0));
+  } else if (Array.isArray(data.time)) {
+    times = data.time;
+    speeds = (data.wind_speed_10m || []).map(v => Number(v ?? 0));
+  }
+  if (!times.length || !speeds.length) return null;
+
+  const now = Date.now();
+  const points = times.map((t, i) => ({ t: new Date(t).getTime(), s: speeds[i] })).filter(p => Number.isFinite(p.t) && Number.isFinite(p.s) && p.t >= now).slice(0, 8);
+  if (points.length < 2) return null;
+  const start = points[0].s;
+  const end = points[points.length - 1].s;
+  const delta = end - start;
+  const trend = Math.abs(delta) < 2 ? 'steady' : delta < 0 ? 'easing' : 'building';
+  return { model, start, end, delta, trend };
+}
+
 function buildCourseImplicationSignature(course) {
   if (!course) return '';
   const geometry = getCourseGeometry(course);
@@ -2670,84 +2689,112 @@ function renderTactics(course, geometry = null) {
   geometry = geometry || getCourseGeometry(course);
   const tacticCoords = geometry.animationCoords.length >= 2 ? geometry.animationCoords : geometry.lineCoords;
   const legs = buildLegsForTactics(tacticCoords, course);
-  const openingLeg = legs[0];
-  const decisiveLeg = [...legs].sort((a, b) => b.distanceNm - a.distanceNm)[0] || openingLeg;
+  const now = new Date();
   const windText = currentWindDir == null
     ? 'wind loading'
     : `${directionText(currentWindDir)} ${Math.round(currentWindDir)}° at ${currentWindSpeed.toFixed(1)}kn`;
   const tideText = currentTideState
-    ? `${currentTideState.vector.shortLabel.toLowerCase()} ${currentTideState.strengthLabel}`
+    ? `${currentTideState.phase} ${currentTideState.strengthLabel}`
     : 'tide loading';
+  const forecastTrend = getForecastTrendSummary();
 
   tacticsMeta.textContent = `${ALL_SERIES[currentSeries].label} • ${windText} • ${tideText}`;
 
-  if (!openingLeg) {
+  if (!legs.length) {
     tacticsSummary.textContent = 'Pick a course to get a short tactical note.';
     tacticsList.innerHTML = '';
     return;
   }
 
-  const openingMark = BUOYS[openingLeg.toWp?.m]?.label || 'the first mark';
-  const decisiveMark = BUOYS[decisiveLeg?.toWp?.m]?.label || 'the key leg';
-  const openingCross = describeCrossCurrent(openingLeg);
-  const decisiveAlong = decisiveLeg ? describeAlongCurrent(decisiveLeg) : '';
-  const favouredSide = (leg) => {
-    if (!leg || !currentTideState) return null;
-    if (Math.abs(leg.crossCurrent) < 0.22) return null;
-    return leg.crossCurrent > 0 ? 'port side should stay cleaner' : 'starboard side should stay cleaner';
-  };
-  const tideLegTip = (leg) => {
-    if (!leg || !currentTideState) return '';
-    const parts = [];
-    const alongAbs = Math.abs(leg.alongCurrent);
-    const crossAbs = Math.abs(leg.crossCurrent);
-    if (alongAbs >= 0.32) parts.push(leg.alongCurrent > 0 ? 'use the push' : 'minimise time in the foul stream');
-    if (crossAbs >= 0.28) parts.push(leg.crossCurrent > 0 ? 'guard room to starboard' : 'protect room to port');
-    return parts.slice(0, 2).join(', ');
-  };
-  const harbourHint = (() => {
-    if (!geometry || !geometry.firstRealMark || currentWindDir == null) return '';
-    const start = geometry.startCoord;
-    const first = geometry.firstRealMark;
-    const dx = first.lng - start[1];
-    if (Math.abs(dx) < 0.01) return '';
-    return dx < 0
-      ? 'The left side is more inshore, so watch for land effects and pressure bends there.'
-      : 'The right side is more inshore, so watch for land effects and pressure bends there.';
+  const formatTime = (d) => d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null;
+  const nextEvent = currentTideState?.nextEventTime ? new Date(currentTideState.nextEventTime) : null;
+  const minsToTurn = nextEvent ? Math.round((nextEvent.getTime() - now.getTime()) / 60000) : null;
+  const tideStage = (() => {
+    if (!currentTideState) return 'loading';
+    if (minsToTurn !== null && minsToTurn <= 35) return 'close to turning';
+    if (currentTideState.strength === 'strong') return 'near strongest';
+    if (currentTideState.strength === 'building') return 'building';
+    if (currentTideState.strength === 'easing') return 'easing';
+    return currentTideState.strengthLabel || 'steady';
+  })();
+  const tideNow = currentTideState
+    ? `Tide now: ${currentTideState.phase === 'ebb' ? 'Ebbing' : 'Flooding'}, ${tideStage}, setting ${directionText(currentTideState.vector?.bearing || 0)}`
+    : 'Tide now: Loading';
+  const nextChange = currentTideState && nextEvent
+    ? `Next change: ${currentTideState.phase === 'ebb' ? 'Ebb' : 'Flood'} continues until ${currentTideState.nextEventLabel || 'the next turn'} at ${formatTime(nextEvent)}`
+    : 'Next change: Tide timing loading';
+  const overallImpact = (() => {
+    const windPart = forecastTrend
+      ? forecastTrend.trend === 'easing'
+        ? 'Wind is expected to ease over the next couple of hours, so early pressure matters.'
+        : forecastTrend.trend === 'building'
+          ? 'Wind is expected to build over the next couple of hours, so later legs may reward staying in pressure.'
+          : 'Wind should stay fairly steady over the next couple of hours.'
+      : '';
+    const tidePart = !currentTideState
+      ? 'Waiting for tide read before calling the key lane.'
+      : minsToTurn !== null && minsToTurn <= 35
+        ? 'Tide is close to turning, so mark approach matters more than committing hard to one side.'
+        : Math.abs(legs[0].crossCurrent) >= 0.28
+          ? 'Current matters on the early legs, so lane choice and clear air matter more than small wind shifts.'
+          : Math.abs(legs[0].alongCurrent) >= 0.28
+            ? 'Distance sailed matters because the tide is helping one lane and hurting the other.'
+            : 'Tide is manageable, so keep the boat fast and protect the clean lane.';
+    return `Overall impact: ${[tidePart, windPart].filter(Boolean).join(' ')}`;
   })();
 
-  let summary = '';
-  if (openingLeg.type === 'upwind') summary = `First beat to ${openingMark}: prioritise clear air, then tack only on real gain.`;
-  else if (openingLeg.type === 'reach') summary = `Opening reach to ${openingMark}: stay fast, hold a lane, and cash in pressure.`;
-  else summary = `Opening run to ${openingMark}: commit to the pressure side early and keep the boat settled.`;
+  const favouredSide = (leg) => {
+    if (!leg || !currentTideState || Math.abs(leg.crossCurrent) < 0.24) return null;
+    return leg.crossCurrent > 0 ? 'starboard lane stays cleaner' : 'port lane stays cleaner';
+  };
 
-  const summaryBits = [];
-  if (decisiveLeg && decisiveLeg.distanceNm >= 1.2) {
-    summaryBits.push(`Longest passing chance is the ${decisiveLeg.type} leg toward ${decisiveMark}.`);
-  }
-  if (currentTideState) {
-    summaryBits.push(currentTideState.phase === 'ebb'
-      ? `Ebb ${currentTideState.strengthLabel}, so avoid overstanding into bad tide.`
-      : `Flood ${currentTideState.strengthLabel}, so protect the lane with the kinder push.`);
-  }
-  if (openingCross) summaryBits.push(`Opener: ${openingCross}.`);
-  else if (decisiveAlong) summaryBits.push(decisiveAlong + '.');
-  if (harbourHint) summaryBits.push(harbourHint);
+  const legCall = (leg) => {
+    if (leg.type === 'upwind') {
+      if (favouredSide(leg)) return `Favour ${favouredSide(leg).startsWith('starboard') ? 'starboard' : 'port'} early`;
+      if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0 ? 'Use the push and stay lifted' : 'Minimise time in foul stream';
+      return 'Prioritise clear air early';
+    }
+    if (leg.type === 'reach') {
+      if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0 ? 'Hold the fast lane with the push' : 'Sail the shorter, cleaner lane';
+      if (forecastTrend?.trend === 'easing') return 'Stay in pressure and keep moving';
+      return 'Enter on the cleaner lane';
+    }
+    if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0 ? 'Run where the tide helps' : 'Protect distance over ground';
+    return leg.poleLabel ? `Set up for ${leg.poleLabel.toLowerCase()}` : 'Commit to the pressure lane';
+  };
 
-  tacticsSummary.textContent = `${summary} ${summaryBits.join(' ')}`.trim();
-  tacticsList.innerHTML = legs.slice(0, 6).map((leg, index) => {
+  const legWhy = (leg) => {
+    const side = favouredSide(leg);
+    if (side && leg.type === 'upwind') return `Why: ${currentTideState?.phase === 'ebb' ? 'Ebb' : 'Flood'} will push you sideways, so ${side} and clear air matter more than small shifts.`;
+    if (Math.abs(leg.crossCurrent) >= 0.3) return `Why: The tide will move you off the direct track, so lane control matters more than footing for a few seconds.`;
+    if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0
+      ? 'Why: This lane gets more help from the current, so staying in it improves distance over ground.'
+      : 'Why: The foul stream slows the boat on this leg, so extra distance gets expensive quickly.';
+    if (leg.type === 'upwind') return forecastTrend?.trend === 'easing'
+      ? 'Why: Breeze is forecast to soften, so early pressure and clear air are worth more than small shifts.'
+      : 'Why: Passing chances come from clear air first, so protect a lane before you chase shifts.';
+    if (leg.type === 'reach') return forecastTrend?.trend === 'easing'
+      ? 'Why: The breeze may fade during the race, so staying in pressure matters more than sailing the perfect angle.'
+      : 'Why: This leg has limited passing chances, so the cleaner lane is worth more than a small angle gain.';
+    return forecastTrend?.trend === 'building'
+      ? 'Why: Later breeze should improve, so stay connected to pressure and avoid getting trapped low and slow.'
+      : 'Why: Running lanes are hard to recover from, so commit early and keep the boat settled.';
+  };
+
+  tacticsSummary.innerHTML = `
+    <div><strong>${tideNow}</strong></div>
+    <div>${nextChange}</div>
+    <div>${overallImpact}</div>
+  `;
+
+  tacticsList.innerHTML = legs.slice(0, 8).map((leg, index) => {
     const target = BUOYS[leg.toWp?.m]?.label || `leg ${index + 1}`;
     const mode = leg.type === 'upwind' ? 'Upwind' : leg.type === 'reach' ? 'Reach' : 'Run';
-    const side = favouredSide(leg);
-    const tipBits = [];
-    if (side) tipBits.push(side);
-    const currentTip = tideLegTip(leg);
-    if (currentTip) tipBits.push(currentTip);
-    if (!tipBits.length) tipBits.push(leg.type === 'upwind' ? 'sail in phase, not in traffic' : leg.type === 'reach' ? 'stay low drag and fast' : `commit to the ${leg.poleLabel?.toLowerCase() || 'pressure'} lane`);
     return `
       <div class="tactic-item">
-        <strong>Leg ${index + 1}, ${mode} to ${target}</strong>
-        <span>${tipBits.join(' • ')}.</span>
+        <strong>Leg ${index + 1} – ${mode} to ${target}</strong>
+        <span>Call: ${legCall(leg)}</span>
+        <span>${legWhy(leg)}</span>
       </div>
     `;
   }).join('');
