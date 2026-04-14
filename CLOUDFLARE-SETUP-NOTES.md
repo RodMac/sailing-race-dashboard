@@ -23,7 +23,9 @@ All three currently serve the same landing page at `/` and redirect to `/sailing
 The local repo is configured around `bbyc-sailing`, but the real custom domain `digitalworks.nz` is attached to the Cloudflare Pages project `sailing-dashboard`. If the goal is to update the live main page, deploy to `sailing-dashboard`, not just `bbyc-sailing`.
 
 ## Latest known good previews
-- `https://072ef25d.sailing-dashboard.pages.dev`
+- live-project preview: `https://072ef25d.sailing-dashboard.pages.dev`
+- `https://2725c14b.bbyc-sailing.pages.dev`
+- `https://e94435c0.bbyc-sailing.pages.dev`
 - `https://e12bed2e.bbyc-sailing.pages.dev`
 - `https://1fa41efd.bbyc-sailing.pages.dev`
 - `https://c850f187.bbyc-sailing.pages.dev`
@@ -38,11 +40,17 @@ The local repo is configured around `bbyc-sailing`, but the real custom domain `
 6. Forecast panel is now a 3-day wind forecast, not 5-day.
 7. Forecast model switching must only use a source with actual forecast data, with fallback order from the selected model to the other model sources.
 8. Tactics are intended to refresh when the selected model changes.
-9. Tactics output format is now:
-   - 3-line overview: Tide now, Next change, Overall impact
-   - then each leg as Title, Call, Why
-10. Tactics are intended to use both tide state and the next couple of hours of forecast wind trend, ideally from MetService when available.
-11. Tide timing for tactics now depends on explicit parsed timestamps for past and next tide events. If that fails, the fallback text should be `Tide timing unavailable`, not `Tide timing loading`.
+9. Tactics summary now shows:
+   - Tide now
+   - Race period tide
+   - Wind now
+   - Race period wind
+   - Overall impact
+10. Per-leg tactics now explicitly use wind angle and classify each leg into modes like very tight beat, open beat, tight reach, beam reach, broad reach, hot run, square-ish run, and deep run.
+11. Each leg now shows TWA in the title to help sanity-check the tactical read.
+12. Tactics should blend wind mode with cross-tide and along-tide effects, so repeated legs should no longer all get the same tide-only advice.
+13. Tide timing for tactics now depends on explicit parsed timestamps for past and next tide events. If that fails, the fallback text should be `Tide timing unavailable`, not `Tide timing loading`.
+14. For live custom-domain updates to `digitalworks.nz/sailing/`, deploy with the live Pages project name: `sailing-dashboard`.
 
 ## Where to inspect the fixes
 - Main app: `sailing/index.html`
@@ -67,11 +75,15 @@ Reason:
 2. `git status`
 3. `npx wrangler whoami`
 4. `python3 - <<'PY' ... extract inline script ... PY` then `node --check /tmp/dashboard-script.js`
-5. For preview testing: `npx wrangler pages deploy .`
-6. For real live update to `digitalworks.nz/sailing/`: `npx wrangler pages deploy . --project-name sailing-dashboard`
+5. For preview testing on the local-config project: `npx wrangler pages deploy . --commit-dirty=true`
+6. For real live update to `digitalworks.nz/sailing/`: `npx wrangler pages deploy . --project-name sailing-dashboard --commit-dirty=true`
 7. Verify both:
    - preview `/sailing/`
    - live `https://digitalworks.nz/sailing/`
+8. If starting cold, the main files to inspect first are:
+   - `sailing/index.html`
+   - `wrangler.toml`
+   - `CLOUDFLARE-SETUP-NOTES.md`
 
 ## Open question still worth checking later
 Rationalize or document the overlapping `bbyc-sailing` and `sailing-dashboard` Pages projects so future deploys are less confusing.

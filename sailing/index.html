@@ -1886,7 +1886,7 @@ async function computeTides() {
     const tideSetPill = document.getElementById('tide-set-pill');
     if (tideSetPill) {
       tideSetPill.innerHTML = tideState
-        ? `<strong>${tideState.vector.shortLabel}</strong> ${tideState.strengthLabel}`
+        ? `<strong>${tideState.phase === 'ebb' ? 'Ebb' : 'Flood'} set ${directionText(tideState.vector?.bearing || 0)}</strong> ${tideState.minutesToNextTurn != null && tideState.minutesToNextTurn <= 150 ? `turning in ${Math.max(tideState.minutesToNextTurn, 0)} min` : 'holds through race period'}`
         : 'Tide set unavailable';
     }
 
@@ -2675,30 +2675,82 @@ function drawWaypointMarkers() {
   });
 }
 
-function getForecastTrendSummary() {
+function parseCourseDistanceNm(distText) {
+  if (!distText) return null;
+  const text = String(distText).trim().toUpperCase();
+  if (text === 'W/L') return 6;
+  const range = text.match(/(\d+(?:\.\d+)?)\s*-\s*(\d+(?:\.\d+)?)\s*NM/);
+  if (range) return (parseFloat(range[1]) + parseFloat(range[2])) / 2;
+  const single = text.match(/(\d+(?:\.\d+)?)\s*NM/);
+  if (single) return parseFloat(single[1]);
+  return null;
+}
+
+function estimateRaceWindowHours(course) {
+  const distNm = parseCourseDistanceNm(course?.dist);
+  if (!Number.isFinite(distNm)) return 2;
+  const assumedAvgSpeed = distNm <= 6 ? 4.8 : distNm <= 10 ? 5.4 : 5.9;
+  const rawHours = distNm / assumedAvgSpeed;
+  return Math.max(1.25, Math.min(3.5, rawHours));
+}
+
+function getForecastWindowSummary(hours = 2) {
   const model = currentForecastModel;
   const data = currentForecastSeries;
   if (!model || !data) return null;
 
-  let times = [];
-  let speeds = [];
+  let points = [];
   if (Array.isArray(data.forecast)) {
-    times = data.forecast.map(f => f.dtl);
-    speeds = data.forecast.map(f => Number(f.windKn ?? 0));
+    points = data.forecast.map(f => ({
+      t: new Date(f.dtl).getTime(),
+      windKn: Number(f.windKn ?? 0),
+      gustKn: Number(f.gustKn ?? f.windKn ?? 0),
+      dir: Number(f.dir ?? NaN),
+    }));
   } else if (Array.isArray(data.time)) {
-    times = data.time;
-    speeds = (data.wind_speed_10m || []).map(v => Number(v ?? 0));
+    points = data.time.map((t, i) => ({
+      t: new Date(t).getTime(),
+      windKn: Number((data.wind_speed_10m || [])[i] ?? 0),
+      gustKn: Number((data.wind_gusts_10m || [])[i] ?? (data.wind_speed_10m || [])[i] ?? 0),
+      dir: Number((data.wind_direction_10m || [])[i] ?? NaN),
+    }));
   }
-  if (!times.length || !speeds.length) return null;
+  if (!points.length) return null;
 
   const now = Date.now();
-  const points = times.map((t, i) => ({ t: new Date(t).getTime(), s: speeds[i] })).filter(p => Number.isFinite(p.t) && Number.isFinite(p.s) && p.t >= now).slice(0, 8);
-  if (points.length < 2) return null;
-  const start = points[0].s;
-  const end = points[points.length - 1].s;
-  const delta = end - start;
-  const trend = Math.abs(delta) < 2 ? 'steady' : delta < 0 ? 'easing' : 'building';
-  return { model, start, end, delta, trend };
+  const end = now + hours * 3600 * 1000;
+  const window = points.filter(p => Number.isFinite(p.t) && p.t >= now && p.t <= end && Number.isFinite(p.windKn));
+  if (!window.length) return null;
+
+  const windValues = window.map(p => p.windKn).filter(Number.isFinite);
+  const gustValues = window.map(p => p.gustKn).filter(Number.isFinite);
+  const dirValues = window.map(p => p.dir).filter(Number.isFinite);
+  const first = window[0];
+  const last = window[window.length - 1];
+  const avgWind = windValues.reduce((a, b) => a + b, 0) / windValues.length;
+  const minWind = Math.min(...windValues);
+  const maxWind = Math.max(...windValues);
+  const maxGust = gustValues.length ? Math.max(...gustValues) : null;
+  const dirStart = dirValues.length ? dirValues[0] : null;
+  const dirEnd = dirValues.length ? dirValues[dirValues.length - 1] : null;
+  const speedDelta = last.windKn - first.windKn;
+  const dirDelta = (dirStart == null || dirEnd == null) ? null : smallestAngleDiff(dirEnd, dirStart);
+  const trend = Math.abs(speedDelta) < 2 ? 'steady' : speedDelta < 0 ? 'easing' : 'building';
+
+  return {
+    model,
+    hours,
+    window,
+    avgWind,
+    minWind,
+    maxWind,
+    maxGust,
+    dirStart,
+    dirEnd,
+    speedDelta,
+    dirDelta,
+    trend,
+  };
 }
 
 function buildCourseImplicationSignature(course) {
@@ -2724,15 +2776,13 @@ function renderTactics(course, geometry = null) {
   const tacticCoords = geometry.animationCoords.length >= 2 ? geometry.animationCoords : geometry.lineCoords;
   const legs = buildLegsForTactics(tacticCoords, course);
   const now = new Date();
+  const raceHours = estimateRaceWindowHours(course);
+  const forecastWindow = getForecastWindowSummary(raceHours);
   const windText = currentWindDir == null
     ? 'wind loading'
     : `${directionText(currentWindDir)} ${Math.round(currentWindDir)}° at ${currentWindSpeed.toFixed(1)}kn`;
-  const tideText = currentTideState
-    ? `${currentTideState.phase} ${currentTideState.strengthLabel}`
-    : 'tide loading';
-  const forecastTrend = getForecastTrendSummary();
 
-  tacticsMeta.textContent = `${ALL_SERIES[currentSeries].label} • ${windText} • ${tideText}`;
+  tacticsMeta.textContent = `${ALL_SERIES[currentSeries].label} • ${course.dist} • using ~${raceHours.toFixed(1)}h race window`;
 
   if (!legs.length) {
     tacticsSummary.textContent = 'Pick a course to get a short tactical note.';
@@ -2743,90 +2793,167 @@ function renderTactics(course, geometry = null) {
   const formatTime = (d) => d ? d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' }) : null;
   const nextEvent = currentTideState?.nextEventTime ? new Date(currentTideState.nextEventTime) : null;
   const minsToTurn = currentTideState?.minutesToNextTurn ?? (nextEvent ? Math.round((nextEvent.getTime() - now.getTime()) / 60000) : null);
-  const tideStage = (() => {
-    if (!currentTideState) return 'loading';
-    if (minsToTurn !== null && minsToTurn <= 35) return 'close to turning';
-    if (currentTideState.stage === 'strongest') return 'near strongest';
-    if (currentTideState.stage === 'building') return 'building';
-    if (currentTideState.stage === 'easing') return 'easing';
-    return currentTideState.strengthLabel || 'steady';
+  const raceEnd = new Date(now.getTime() + raceHours * 3600 * 1000);
+  const tideRaceView = (() => {
+    if (!currentTideState) return 'Tide read unavailable for race window.';
+    const phaseLabel = currentTideState.phase === 'ebb' ? 'Ebb' : 'Flood';
+    const setLabel = directionText(currentTideState.vector?.bearing || 0);
+    if (minsToTurn == null) return `${phaseLabel} set ${setLabel} through most of the race.`;
+    if (minsToTurn <= raceHours * 60) {
+      return `${phaseLabel} set ${setLabel} for about ${Math.max(minsToTurn, 0)} min, then turns near ${formatTime(nextEvent)}.`;
+    }
+    return `${phaseLabel} set ${setLabel} should hold for the whole race window.`;
   })();
-  const tideNow = currentTideState
-    ? `Tide now: ${currentTideState.phase === 'ebb' ? 'Ebbing' : 'Flooding'}, ${tideStage}, setting ${directionText(currentTideState.vector?.bearing || 0)}`
-    : 'Tide now: Loading';
-  const nextChange = currentTideState && nextEvent
-    ? `Next change: ${currentTideState.phase === 'ebb' ? 'Ebb' : 'Flood'} continues until ${currentTideState.nextEventLabel || 'the next turn'} at ${formatTime(nextEvent)}, then ${currentTideState.phase === 'ebb' ? 'eases' : 'eases'}`
-    : 'Next change: Tide timing unavailable';
+  const windRaceView = (() => {
+    if (!forecastWindow) return 'Forecast window unavailable.';
+    const range = `${Math.round(forecastWindow.minWind)}-${Math.round(forecastWindow.maxWind)}kn`;
+    const gustBit = forecastWindow.maxGust != null ? `, gusts ${Math.round(forecastWindow.maxGust)}kn` : '';
+    const dirBit = forecastWindow.dirStart == null
+      ? ''
+      : forecastWindow.dirEnd != null && Math.abs(forecastWindow.dirDelta || 0) >= 8
+        ? `, holding ${directionText(forecastWindow.dirStart)} then trending to ${directionText(forecastWindow.dirEnd)}`
+        : `, holding around ${directionText(forecastWindow.dirStart)}`;
+    return `${range}${gustBit}${dirBit}`;
+  })();
+
   const overallImpact = (() => {
-    const windPart = forecastTrend
-      ? forecastTrend.trend === 'easing'
-        ? 'Wind is expected to ease over the next couple of hours, so early pressure matters.'
-        : forecastTrend.trend === 'building'
-          ? 'Wind is expected to build over the next couple of hours, so later legs may reward staying in pressure.'
-          : 'Wind should stay fairly steady over the next couple of hours.'
-      : '';
-    const tidePart = !currentTideState
-      ? 'Waiting for tide read before calling the key lane.'
-      : minsToTurn !== null && minsToTurn <= 35
-        ? 'Tide is close to turning, so mark approach matters more than committing hard to one side.'
-        : Math.abs(legs[0].crossCurrent) >= 0.28
-          ? 'Current matters on the early legs, so lane choice and clear air matter more than small wind shifts.'
-          : Math.abs(legs[0].alongCurrent) >= 0.28
-            ? 'Distance sailed matters because the tide is helping one lane and hurting the other.'
-            : 'Tide is manageable, so keep the boat fast and protect the clean lane.';
-    return `Overall impact: ${[tidePart, windPart].filter(Boolean).join(' ')}`;
+    const pieces = [];
+    if (currentTideState) {
+      if (minsToTurn !== null && minsToTurn <= raceHours * 60) {
+        pieces.push('The tide turn is inside the race window, so the later legs may sail quite differently from the first ones.');
+      } else if (legs.some(leg => Math.abs(leg.crossCurrent) >= 0.32)) {
+        pieces.push('Cross-tide is strong enough to shape laylines and lane choice on several legs.');
+      } else if (legs.some(leg => Math.abs(leg.alongCurrent) >= 0.3)) {
+        pieces.push('Tide is mostly helping or hurting along-track, so extra distance sailed will matter.');
+      } else {
+        pieces.push('Tide looks secondary to staying in pressure and keeping the boat fast.');
+      }
+    }
+    if (forecastWindow) {
+      if (forecastWindow.trend === 'building') pieces.push('Breeze should build through the race, so later pressure may be better than the first look suggests.');
+      else if (forecastWindow.trend === 'easing') pieces.push('Breeze should ease through the race, so protecting pressure becomes more important than hunting tiny shifts.');
+      else pieces.push('Wind strength looks fairly stable over the race period.');
+      if (forecastWindow.dirDelta != null && Math.abs(forecastWindow.dirDelta) >= 10) {
+        pieces.push(`Expect about a ${Math.abs(Math.round(forecastWindow.dirDelta))}° ${forecastWindow.dirDelta > 0 ? 'right' : 'left'} trend during the race.`);
+      }
+    }
+    return pieces.join(' ');
   })();
 
   const favouredSide = (leg) => {
     if (!leg || !currentTideState || Math.abs(leg.crossCurrent) < 0.24) return null;
-    return leg.crossCurrent > 0 ? 'starboard lane stays cleaner' : 'port lane stays cleaner';
+    return leg.crossCurrent > 0 ? 'starboard side' : 'port side';
   };
 
-  const legCall = (leg) => {
+  const windMode = (leg) => {
     if (leg.type === 'upwind') {
-      if (favouredSide(leg)) return `Favour ${favouredSide(leg).startsWith('starboard') ? 'starboard' : 'port'} early`;
-      if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0 ? 'Use the push and stay lifted' : 'Minimise time in foul stream';
-      return 'Prioritise clear air early';
+      if (leg.twa <= 32) return 'very tight beat';
+      if (leg.twa <= 45) return 'normal beat';
+      return 'open beat';
     }
     if (leg.type === 'reach') {
-      if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0 ? 'Hold the fast lane with the push' : 'Sail the shorter, cleaner lane';
-      if (forecastTrend?.trend === 'easing') return 'Stay in pressure and keep moving';
-      return 'Enter on the cleaner lane';
+      if (leg.twa <= 75) return 'tight reach';
+      if (leg.twa <= 100) return 'beam reach';
+      return 'broad reach';
     }
-    if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0 ? 'Run where the tide helps' : 'Protect distance over ground';
-    return leg.poleLabel ? `Set up for ${leg.poleLabel.toLowerCase()}` : 'Commit to the pressure lane';
+    if (leg.twa >= 160) return 'deep run';
+    if (leg.twa >= 138) return 'square-ish run';
+    return 'hot run';
+  };
+
+  const shiftText = forecastWindow?.dirDelta != null && Math.abs(forecastWindow.dirDelta) >= 10
+    ? `${forecastWindow.dirDelta > 0 ? 'right' : 'left'} trend`
+    : null;
+
+  const legCall = (leg) => {
+    const side = favouredSide(leg);
+    const mode = windMode(leg);
+    const strongHelp = Math.abs(leg.alongCurrent) >= 0.3;
+    const strongCross = Math.abs(leg.crossCurrent) >= 0.3;
+
+    if (leg.type === 'upwind') {
+      if (side && strongCross) return `Sail it like a ${mode}, protect the ${side}, and tack on real pressure only.`;
+      if (shiftText) return `Sail the ${mode} with eyes up for the ${shiftText}, but do not give away clear air.`;
+      if (strongHelp) return leg.alongCurrent > 0
+        ? `Lean into the ${mode} and keep the boat rolling, the tide is helping if you stay efficient.`
+        : `Keep the ${mode} compact, foul tide makes every extra metre expensive.`;
+      return `Treat it as a ${mode}, prioritise clear air and pressure over cute shift-chasing.`;
+    }
+
+    if (leg.type === 'reach') {
+      if (mode === 'tight reach') {
+        if (side && strongCross) return `Mode it as a tight fetch, protect the ${side}, and avoid getting swept below the line.`;
+        return 'Treat it like a tight fetch, stay fast first, then cash in on pressure and tide alignment.';
+      }
+      if (mode === 'beam reach') {
+        return strongHelp && leg.alongCurrent < 0
+          ? 'Sail the shortest beam-reach lane, foul tide will punish wandering.'
+          : 'Hold the clean, pressurised beam-reach lane and keep out of disturbed air.';
+      }
+      return strongHelp && leg.alongCurrent > 0
+        ? 'Use the broad-reach lane with both pressure and tide help, then press forward.'
+        : 'Stay mode-flexible on the broad reach and avoid slow traffic or dirty air.';
+    }
+
+    if (mode === 'hot run') {
+      return strongHelp && leg.alongCurrent < 0
+        ? 'Sail hotter angles at good pace, foul tide punishes soaking too low.'
+        : 'Treat it as a hot run, work the pressure and place gybes for lane control.';
+    }
+    if (mode === 'square-ish run') {
+      return side && strongCross
+        ? `Square back only when safe, because the ${side} is cleaner against the set.`
+        : 'Set up early, sail the square run efficiently, and do not over-gybe without pressure.';
+    }
+    return leg.poleLabel
+      ? `Sail the deep run efficiently, set up early for ${leg.poleLabel.toLowerCase()}, and protect VMG.`
+      : 'Sail the deep run efficiently and protect VMG over distance sailed.';
   };
 
   const legWhy = (leg) => {
     const side = favouredSide(leg);
-    if (side && leg.type === 'upwind') return `Why: ${currentTideState?.phase === 'ebb' ? 'Ebb' : 'Flood'} will push you sideways, so ${side} and clear air matter more than small shifts.`;
-    if (Math.abs(leg.crossCurrent) >= 0.3) return `Why: The tide will move you off the direct track, so lane control matters more than footing for a few seconds.`;
-    if (Math.abs(leg.alongCurrent) >= 0.3) return leg.alongCurrent > 0
-      ? 'Why: This lane gets more help from the current, so staying in it improves distance over ground.'
-      : 'Why: The foul stream slows the boat on this leg, so extra distance gets expensive quickly.';
-    if (leg.type === 'upwind') return forecastTrend?.trend === 'easing'
-      ? 'Why: Breeze is forecast to soften, so early pressure and clear air are worth more than small shifts.'
-      : 'Why: Passing chances come from clear air first, so protect a lane before you chase shifts.';
-    if (leg.type === 'reach') return forecastTrend?.trend === 'easing'
-      ? 'Why: The breeze may fade during the race, so staying in pressure matters more than sailing the perfect angle.'
-      : 'Why: This leg has limited passing chances, so the cleaner lane is worth more than a small angle gain.';
-    return forecastTrend?.trend === 'building'
-      ? 'Why: Later breeze should improve, so stay connected to pressure and avoid getting trapped low and slow.'
-      : 'Why: Running lanes are hard to recover from, so commit early and keep the boat settled.';
+    const mode = windMode(leg);
+    const bits = [];
+    bits.push(`Wind angle makes this a ${mode}.`);
+    if (side && Math.abs(leg.crossCurrent) >= 0.24) {
+      bits.push(`${currentTideState?.phase === 'ebb' ? 'Ebb' : 'Flood'} set is pushing you sideways, so the ${side} should stay cleaner.`);
+    }
+    if (Math.abs(leg.crossCurrent) >= 0.3 && !side) {
+      bits.push('Cross-tide will move you off the rhumb line, so layline judgement matters more than usual.');
+    }
+    if (Math.abs(leg.alongCurrent) >= 0.3) {
+      bits.push(leg.alongCurrent > 0
+        ? 'There is useful tide help on this axis, so staying in the helping lane improves distance made good.'
+        : 'This leg is into foul tide, so extra manoeuvres and extra distance are expensive.');
+    }
+    if (leg.type === 'upwind') {
+      bits.push('Upwind gains should come from combining pressure, angle, and current, not tide alone.');
+    } else if (leg.type === 'reach') {
+      bits.push('On a reach, mode selection matters, because a small change in angle can flip the best lane.');
+    } else {
+      bits.push(mode === 'hot run'
+        ? 'Because it is not very deep, hotter angles may beat pure soak mode.'
+        : 'VMG and gybe placement matter more than simply sailing the rhumb line.');
+    }
+    if (shiftText) bits.push(`There is also a ${shiftText} in the race-window forecast.`);
+    return `Why: ${bits.join(' ')}`;
   };
 
   tacticsSummary.innerHTML = `
-    <div><strong>${tideNow}</strong></div>
-    <div>${nextChange}</div>
-    <div>${overallImpact}</div>
+    <div><strong>Tide now:</strong> ${currentTideState ? `${currentTideState.phase === 'ebb' ? 'Ebb' : 'Flood'}, ${currentTideState.strengthLabel}, set ${directionText(currentTideState.vector?.bearing || 0)}.` : 'Loading.'}</div>
+    <div><strong>Race period tide:</strong> ${tideRaceView}</div>
+    <div><strong>Wind now:</strong> ${windText}.</div>
+    <div><strong>Race period wind:</strong> ${windRaceView} to about ${formatTime(raceEnd)}.</div>
+    <div><strong>Overall impact:</strong> ${overallImpact || 'Waiting for a cleaner read.'}</div>
   `;
 
   tacticsList.innerHTML = legs.slice(0, 8).map((leg, index) => {
     const target = BUOYS[leg.toWp?.m]?.label || `leg ${index + 1}`;
     const mode = leg.type === 'upwind' ? 'Upwind' : leg.type === 'reach' ? 'Reach' : 'Run';
+    const angleMeta = Number.isFinite(leg.twa) ? ` · TWA ${Math.round(leg.twa)}°` : '';
     return `
       <div class="tactic-item">
-        <strong>Leg ${index + 1} – ${mode} to ${target}</strong>
+        <strong>Leg ${index + 1} – ${mode} to ${target}${angleMeta}</strong>
         <span>Call: ${legCall(leg)}</span>
         <span>${legWhy(leg)}</span>
       </div>

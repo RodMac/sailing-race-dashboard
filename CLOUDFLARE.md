@@ -1,13 +1,27 @@
 # Cloudflare deployment notes
 
-This app is now shaped for **Cloudflare Pages + Pages Functions**:
+This app runs as a **Cloudflare Pages** site with **Pages Functions**.
 
-- `index.html` = root landing page
-- `sailing/index.html` = sailing dashboard frontend
-- `functions/api/weathercloud.js` = Weathercloud proxy
-- `functions/api/weatherlink.js` = WeatherLink proxy
-- `functions/api/metservice.js` = MetService Point Forecast proxy
-- `functions/api/tides.js` = tide scraper/parser
+## Active project layout
+
+- `index.html` = root landing page / redirect entry
+- `sailing/index.html` = main dashboard frontend
+- `functions/api/metservice.js` = preferred forecast proxy
+- `functions/api/windfinder.js` = fallback forecast/parser proxy
+- `functions/api/tides.js` = Auckland tide proxy/parser endpoint
+
+## Important deployment reality
+
+There are two relevant Pages projects in play:
+
+- **`bbyc-sailing`**: the project named in local `wrangler.toml`
+- **`sailing-dashboard`**: the live Pages project attached to `digitalworks.nz`
+
+That means:
+- `npx wrangler pages deploy .` deploys to the local-config project
+- `npx wrangler pages deploy . --project-name sailing-dashboard` deploys to the live custom-domain project
+
+If the goal is to update `https://digitalworks.nz/sailing/`, use the explicit `--project-name sailing-dashboard` deploy.
 
 ## Local dev
 
@@ -16,27 +30,44 @@ npm install
 npm run dev
 ```
 
-That should serve the static site plus `/api/*` locally via Wrangler.
+That serves the static site and `/api/*` locally via Wrangler.
 
-## Cloudflare Pages setup
+## Cloudflare Pages settings
 
-1. Create a new **Pages** project in Cloudflare.
-2. Connect the Git repo, or deploy this folder directly with Wrangler.
-3. Build settings:
-   - **Framework preset:** None
-   - **Build command:** leave blank
-   - **Build output directory:** `.`
-4. Custom domain:
-   - add `digitalworks.nz`
-   - point DNS to Cloudflare if the domain is elsewhere
+- **Framework preset:** None
+- **Build command:** leave blank
+- **Build output directory:** `.`
 
 ## Required secret
 
 Set this Pages secret/variable before deploying:
 
-- `METSERVICE_API_KEY` = MetService Point Forecast API key
+- `METSERVICE_API_KEY`
 
-## Notes
+## Recommended deploy commands
 
-- `server.js` is the old Node/Render version and can still be used locally if needed.
-- For Cloudflare hosting, the active server-side code is in `functions/`.
+### Preview / local-config project
+
+```bash
+npx wrangler pages deploy . --commit-dirty=true
+```
+
+### Live custom-domain project
+
+```bash
+npx wrangler pages deploy . --project-name sailing-dashboard --commit-dirty=true
+```
+
+## Current app notes worth knowing
+
+- Wind source preference is now forecast-first: MetService, then Open-Meteo, then Windfinder.
+- Tactics are intended to blend wind angle plus tide, not just summarize tide.
+- The route renderer includes finish legs and dynamic-start geometry.
+- `server.js` and `render.yaml` are legacy and mainly useful for local fallback or historical context.
+
+## Recovery
+
+For a cold restart on this machine, read these first:
+- `README.md`
+- `CLOUDFLARE-SETUP-NOTES.md`
+- `sailing/index.html`
