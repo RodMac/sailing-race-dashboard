@@ -40,20 +40,31 @@ The local repo is configured around `bbyc-sailing`, but the real custom domain `
 6. Forecast panel is now a 3-day wind forecast, not 5-day.
 7. Forecast model switching must only use a source with actual forecast data, with fallback order from the selected model to the other model sources.
 8. Tactics are intended to refresh when the selected model changes.
-9. Tactics summary now shows:
-   - Tide now
-   - Race period tide
-   - Wind now
-   - Race period wind
-   - Overall impact
-10. Per-leg tactics now explicitly use wind angle and classify each leg into modes like very tight beat, open beat, tight reach, beam reach, broad reach, hot run, square-ish run, and deep run.
-11. Each leg now shows TWA in the title to help sanity-check the tactical read.
-12. Tactics should blend wind mode with cross-tide and along-tide effects, so repeated legs should no longer all get the same tide-only advice.
-13. Tide timing for tactics now depends on explicit parsed timestamps for past and next tide events. If that fails, the fallback text should be `Tide timing unavailable`, not `Tide timing loading`.
-14. For live custom-domain updates to `digitalworks.nz/sailing/`, deploy with the live Pages project name: `sailing-dashboard`.
+9. Tactics summary now focuses on readable decision-driving text, not raw data dump.
+10. Per-leg tactics explicitly use wind angle and classify each leg into modes like very tight beat, open beat, tight reach, beam reach, broad reach, hot run, square-ish run, and deep run.
+11. Tactics now separate tide direction from tide strength/confidence and recompute tide state per timestamp from bracketed tide events.
+12. Ebb/flood must be derived from high/low event order:
+   - Low → High = flood
+   - High → Low = ebb
+13. Start-line system now has two states:
+   - Estimated start line (default, planning only)
+   - Captured start line (committee boat end + pin/buoy end)
+14. Captured start line should use phone GPS from the start-line buttons, not map taps.
+15. When committee boat end is captured, the start/boat icon should move to that real captured location.
+16. Start-line tactics should separate:
+   - Line bias
+   - Tactical view
+   - Why
+17. For live custom-domain updates to `digitalworks.nz/sailing/`, deploy with the live Pages project name: `sailing-dashboard`.
 
 ## Where to inspect the fixes
 - Main app: `sailing/index.html`
+- Important frontend sections inside `sailing/index.html`:
+  - map control stack buttons
+  - `deriveTideState(data)`
+  - `getCourseGeometry(course)`
+  - `renderTactics(course, geometry)`
+  - GPS capture helpers / location watch logic
 - Pages Functions:
   - `functions/api/metservice.js`
   - `functions/api/tides.js`
@@ -75,15 +86,27 @@ Reason:
 2. `git status`
 3. `npx wrangler whoami`
 4. `python3 - <<'PY' ... extract inline script ... PY` then `node --check /tmp/dashboard-script.js`
-5. For preview testing on the local-config project: `npx wrangler pages deploy . --commit-dirty=true`
-6. For real live update to `digitalworks.nz/sailing/`: `npx wrangler pages deploy . --project-name sailing-dashboard --commit-dirty=true`
-7. Verify both:
+5. If start-line capture/GPS behavior is under test, make sure the latest code is on the live custom-domain project, not only a preview URL.
+6. For preview testing on the local-config project: `npx wrangler pages deploy . --commit-dirty=true`
+7. For real live update to `digitalworks.nz/sailing/`: `npx wrangler pages deploy . --project-name sailing-dashboard --commit-dirty=true`
+8. Verify both:
    - preview `/sailing/`
    - live `https://digitalworks.nz/sailing/`
-8. If starting cold, the main files to inspect first are:
+9. On phone, confirm:
+   - GPS permission granted
+   - `Mark committee boat end` captures current device location
+   - `Mark pin/buoy end` captures current device location
+   - boat icon moves to committee boat end after capture
+   - course/tactics redraw immediately after capture
+10. If starting cold, the main files to inspect first are:
    - `sailing/index.html`
    - `wrangler.toml`
    - `CLOUDFLARE-SETUP-NOTES.md`
+
+## Cleanup and documentation note
+- On 2026-04-15, transient workspace artifacts were cleaned up from the workspace root and `tmp/`, mainly old browser screenshots and annotated setup captures.
+- These images were treated as disposable because the useful recovery information is now recorded in this file and `../TOOLS.md`.
+- Going forward, prefer updating these local docs over retaining batches of screenshots.
 
 ## Open question still worth checking later
 Rationalize or document the overlapping `bbyc-sailing` and `sailing-dashboard` Pages projects so future deploys are less confusing.

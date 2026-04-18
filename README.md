@@ -14,7 +14,8 @@ A live race-day conditions dashboard for **Bucklands Beach Yacht Club** (BBYC), 
 | 📈 **3-day forecast** | Forecast chart with MetService as preferred source, plus Open-Meteo and Windfinder fallbacks |
 | 🌊 **Tides** | Live Auckland tide table from tide-forecast.com, showing 1 past plus multiple upcoming tides |
 | 🗺️ **Course map** | Interactive Leaflet map with route animation, wind-dependent leg colouring, and waypoint markers |
-| 🧭 **Tactics panel** | Per-leg tactical guidance that blends wind angle, tide set, current assistance, and forecast trend |
+| 🧭 **Tactics panel** | Per-leg tactical guidance that blends wind angle, tide set, current assistance, forecast trend, and clearer confidence-aware explanation |
+| 🚦 **Start-line planner** | Estimated start line by default, plus captured committee boat end and pin/buoy end from phone GPS for real start geometry |
 | 📍 **Race context** | Dynamic start positioning, mark order display, and Hauraki Gulf context for club racing |
 
 ---
@@ -54,8 +55,10 @@ CDN dependencies:
 Key frontend behavior:
 - course geometry includes finish legs and dynamic-start handling
 - route legs are classified from current wind angle
-- tactics recalculate from selected course, forecast window, wind, and tide state
+- tactics recalculate from selected course, forecast window, wind, tide state, and start-line state
+- tide state is derived from surrounding tide events and recomputed per timestamp for later-leg accuracy
 - wind and tide changes can trigger course redraws and tactic refreshes
+- start-line UI defaults to an estimated line, but can capture real committee boat end and pin/buoy end from phone GPS
 
 ### Pages Functions (`functions/api/`)
 
@@ -92,9 +95,12 @@ The active source is shown in the UI, and forecast loading falls back across tho
 The tactics panel is no longer meant to be tide-only commentary. It now combines:
 - current wind direction and speed
 - forecast wind trend over the estimated race window
-- current tide phase, set direction, and time to next turn
+- tide phase derived from bracketed high/low events, not just a cached ebb/flood label
 - per-leg bearing and TWA classification
 - cross-tide and along-tide impact per leg
+- confidence-aware language near slack water or tide turns
+
+The model now recomputes tide state per timestamp so later legs can differ materially from early legs when the tide is easing, near slack, or turning during the race window.
 
 Typical leg modes include:
 - very tight beat
@@ -108,6 +114,29 @@ Typical leg modes include:
 - deep run
 
 Each leg also shows **TWA** so the tactical read can be sanity-checked quickly.
+
+### Start-line model
+
+There are now two start-line modes:
+
+1. **Estimated start line**
+   - used by default when no real line has been captured
+   - placed about 1 NM downwind of Mark 1
+   - oriented approximately square to true wind
+   - clearly labeled as estimated and used only for planning guidance
+
+2. **Captured start line**
+   - uses phone GPS when the user taps:
+     - `Mark committee boat end`
+     - `Mark pin/buoy end`
+   - redraws the course immediately
+   - updates tactics/start-line advice immediately
+   - moves the committee-boat/start icon to the captured committee boat end
+
+The map distinguishes estimated vs captured line styles, and the tactics panel separates:
+- **Line bias**
+- **Tactical view**
+- **Why**
 
 ---
 
@@ -168,6 +197,12 @@ If starting fresh on the machine, begin with:
 - `wrangler.toml`
 - `CLOUDFLARE-SETUP-NOTES.md`
 
+For recent feature context, also check:
+- start-line controls in the map control stack inside `sailing/index.html`
+- `renderTactics(course, geometry)`
+- `getCourseGeometry(course)`
+- `deriveTideState(data)`
+
 Useful checks:
 
 ```bash
@@ -184,7 +219,8 @@ Then deploy either preview or live depending on what needs updating.
 - **Single-file frontend** for easy editing and recovery
 - **Cloudflare Pages Functions** for safe server-side API access
 - **Model-source fallback** instead of dependence on unreliable live station feeds
-- **Per-leg tactical analysis** driven by wind angle plus tide interaction
+- **Per-leg tactical analysis** driven by wind angle plus tide interaction and timestamp-based tide state recomputation
+- **Estimated vs captured start-line workflow** so phone GPS can be used on race day without waiting for official line data
 - **Operational notes kept locally** because deployment structure is slightly confusing across multiple Pages projects
 
 ---

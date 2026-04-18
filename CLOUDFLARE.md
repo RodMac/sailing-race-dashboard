@@ -62,7 +62,12 @@ npx wrangler pages deploy . --project-name sailing-dashboard --commit-dirty=true
 
 - Wind source preference is now forecast-first: MetService, then Open-Meteo, then Windfinder.
 - Tactics are intended to blend wind angle plus tide, not just summarize tide.
+- Tide phase should be derived from surrounding high/low events and recomputed per timestamp for leg-by-leg reads.
 - The route renderer includes finish legs and dynamic-start geometry.
+- The start-line model now supports:
+  - estimated start line by default
+  - captured committee boat end + pin/buoy end from phone GPS
+- If testing live GPS capture, deploy to the live custom-domain project, not just a preview URL.
 - `server.js` and `render.yaml` are legacy and mainly useful for local fallback or historical context.
 
 ## Recovery
