@@ -110,3 +110,21 @@ Reason:
 
 ## Open question still worth checking later
 Rationalize or document the overlapping `bbyc-sailing` and `sailing-dashboard` Pages projects so future deploys are less confusing.
+
+## 2026-04-19 dashboard iteration notes
+- Trends section was simplified to focus on race-day use: Live Conditions now emphasizes wind speed, direction, gusts, tide now, temperature, and rain. Trends Over Race Period now emphasizes wind, tide, and estimated race length.
+- Race timing display was refined to show hours/minutes instead of decimal hours, and the forecast-window note now sits under estimated race length.
+- Wind trend had a real bug where `getForecastWindowSummary()` returned an undefined `model` symbol, which could leave the trend stuck on loading despite visible forecast data. That was fixed locally in `sailing/index.html`.
+- Tactics engine was iteratively reworked multiple times on 2026-04-19. The current direction is a scored wind-vs-tide method that should:
+  - classify each leg as upwind / reach / run
+  - score wind importance vs tide importance
+  - avoid overusing `Tide matters most`
+  - keep upwind legs wind-led by default unless current genuinely dominates
+  - output compact `Focus / Call / Why` rows
+- Tactics UI layout was also tightened to improve mobile readability: more separation between cards, clearer hierarchy, summary rows, and a visually separated start-line block.
+- Map overlays now include both wind animation and a separate blue tide/current animation layer. Wind is brighter white; tide/current is darker blue and should move faster/more clearly when current is stronger.
+- Label cleanup requested by Rod and applied in `sailing/index.html`:
+  - `Karaka Light (Fl.G.3s)` -> `Karaka Light`
+  - `Rangitoto Race Buoy (13)` -> `Rangitoto Race Buoy`
+  - Trends heading -> `TRENDS OVER RACE PERIOD`
+- If preview URLs appear inconsistent, verify the actual deployment with `wrangler pages deployment list`; some preview links have returned 404 even when Wrangler reported success. For stakeholder testing, prefer verifying the live custom-domain deploy at `https://digitalworks.nz/sailing/`.

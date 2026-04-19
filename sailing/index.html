@@ -214,6 +214,11 @@
     grid-template-columns: 1fr 1fr;
     gap: 10px;
   }
+  .trend-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
   .cond-item {
     background: var(--bg);
     border-radius: 8px;
@@ -231,26 +236,28 @@
     font-size: 1.35rem;
     font-weight: 700;
   }
+  .cond-value-big {
+    font-size: 2rem;
+    line-height: 1;
+  }
+  .cond-item-direction {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+  }
+  .cond-value-direction {
+    font-size: 1.9rem;
+    line-height: 1;
+    letter-spacing: 0.02em;
+  }
   .cond-sub {
     font-size: 0.7rem;
     opacity: 0.65;
     margin-top: 2px;
   }
-
-  .wind-arrow-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 4px;
-  }
-  .wind-compass {
-    width: 48px;
-    height: 48px;
-    position: relative;
-  }
-  .wind-compass svg {
-    width: 100%;
-    height: 100%;
+  .cond-sub-direction {
+    font-size: 0.85rem;
+    margin-top: 4px;
   }
 
   .beaufort-bar {
@@ -292,11 +299,11 @@
   .tide-item {
     display: flex;
     align-items: center;
-    gap: 8px;
-    padding: 7px 10px;
+    gap: 10px;
+    padding: 10px 12px;
     background: var(--bg);
-    border-radius: 7px;
-    font-size: 0.83rem;
+    border-radius: 9px;
+    font-size: 0.95rem;
   }
   .tide-type {
     font-size: 0.68rem;
@@ -309,8 +316,8 @@
   }
   .tide-high { background: #dbeafe; color: #1e40af; }
   .tide-low { background: #fce7f3; color: #9d174d; }
-  .tide-time { font-weight: 600; flex: 1; }
-  .tide-height { opacity: 0.7; font-size: 0.78rem; }
+  .tide-time { font-weight: 700; flex: 1; font-size: 1.05rem; line-height: 1.25; }
+  .tide-height { opacity: 0.75; font-size: 0.82rem; display: block; margin-top: 2px; }
 
   .tide-state {
     display: flex;
@@ -347,39 +354,118 @@
   }
 
   .tactics-summary {
-    padding: 10px 12px;
-    border-radius: 8px;
+    padding: 14px 16px;
+    border-radius: 12px;
     background: var(--bg);
-    font-size: 0.8rem;
-    line-height: 1.4;
+    font-size: 0.94rem;
+    line-height: 1.55;
+    margin-bottom: 14px;
+  }
+  .summary-row,
+  .startline-row {
+    display: grid;
+    grid-template-columns: 56px 1fr;
+    gap: 8px;
+    align-items: start;
     margin-bottom: 8px;
+  }
+  .summary-row:last-child,
+  .startline-row:last-child {
+    margin-bottom: 0;
+  }
+  .summary-label,
+  .startline-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: #45627d;
+  }
+  .summary-value,
+  .startline-value {
+    min-width: 0;
+  }
+  .route-sequence {
+    min-width: 0;
+    overflow-wrap: anywhere;
+    word-break: break-word;
   }
   .tactics-list {
     display: grid;
-    gap: 8px;
+    gap: 12px;
   }
   .tactic-item {
     display: block;
-    padding: 9px 10px;
-    border-radius: 8px;
+    padding: 14px 14px;
+    border-radius: 12px;
     background: var(--bg);
-    font-size: 0.77rem;
-    line-height: 1.4;
+    font-size: 0.9rem;
+    line-height: 1.55;
   }
   .tactic-item strong {
     display: block;
-    margin-bottom: 2px;
+    margin-bottom: 6px;
     color: #12314c;
+    font-size: 1rem;
+    line-height: 1.35;
+  }
+  .tactic-submeta {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    align-items: center;
+    margin-bottom: 8px;
+    font-size: 0.72rem;
+    line-height: 1.3;
+    color: #5f6b7a;
+  }
+  .tactic-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 999px;
+    background: rgba(46,163,242,0.10);
+    color: #2d5270;
+    font-weight: 700;
+  }
+  .tactic-focus,
+  .tactic-call,
+  .tactic-why {
+    display: block;
+    margin-top: 6px;
+  }
+  .tactic-focus strong,
+  .tactic-call strong,
+  .tactic-why strong {
+    display: inline;
+    margin: 0 4px 0 0;
+    font-size: 0.78rem;
+    color: #48637d;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tactic-call {
+    font-size: 0.95rem;
+    color: #12314c;
+    font-weight: 700;
+  }
+  .tactic-why {
+    font-size: 0.84rem;
+    color: #526272;
+    line-height: 1.45;
   }
 
   .map-control-stack {
     position: absolute;
-    top: 10px;
-    left: 10px;
+    top: 50%;
+    right: 230px;
+    transform: translateY(-50%);
     z-index: 1000;
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 18px;
+    align-items: flex-end;
   }
   .map-control-btn {
     background: rgba(44,46,67,0.92);
@@ -394,6 +480,23 @@
     white-space: nowrap;
     min-height: 48px;
     text-align: left;
+  }
+  .map-control-btn-icon {
+    width: 58px;
+    min-width: 58px;
+    height: 58px;
+    min-height: 58px;
+    padding: 0;
+    font-size: 1.6rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+  }
+  .map-control-btn-captured {
+    background: rgba(245,158,11,0.98) !important;
+    color: #1f2937 !important;
+    box-shadow: 0 0 0 3px rgba(245,158,11,0.28), 0 2px 8px rgba(0,0,0,0.18);
   }
   .map-control-btn:hover {
     background: #202338;
@@ -622,9 +725,12 @@
     opacity: 0.85;
     flex: 1 1 100%;
     min-width: 0;
-    white-space: normal;
-    overflow: visible;
-    line-height: 1.6;
+    white-space: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    line-height: 1.4;
+    display: block;
+    padding-bottom: 2px;
   }
   .route-sequence .wp-item {
     display: inline;
@@ -705,17 +811,67 @@
 
     .map-control-stack {
       top: 8px;
-      left: 8px;
       right: 8px;
-      gap: 8px;
-      max-width: min(92vw, 380px);
+      left: auto;
+      transform: none;
+      gap: 18px;
+      max-width: none;
     }
-    .map-control-btn {
+    .map-control-btn-icon {
+      width: 64px;
+      min-width: 64px;
+      height: 64px;
+      min-height: 64px;
+      border-radius: 16px;
+      font-size: 1.8rem;
+    }
+    .conditions-grid {
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+    }
+    .cond-item {
+      padding: 12px 8px;
+    }
+    .cond-label {
+      font-size: 0.62rem;
+    }
+    .cond-value-big {
+      font-size: 2.35rem;
+    }
+    .cond-value-direction {
+      font-size: 2.15rem;
+    }
+    .cond-sub,
+    .cond-sub-direction {
+      font-size: 0.78rem;
+    }
+    .route-sequence {
+      font-size: 0.78rem;
       width: 100%;
+      max-width: 100%;
+      overflow-x: auto;
+      -webkit-overflow-scrolling: touch;
+    }
+    .tide-item {
+      padding: 14px 14px;
       font-size: 1rem;
-      min-height: 52px;
-      border-radius: 12px;
-      padding: 12px 16px;
+    }
+    .tide-time {
+      font-size: 1.18rem;
+    }
+    .tide-height {
+      font-size: 0.82rem;
+    }
+    .tactics-summary {
+      font-size: 1rem;
+      line-height: 1.6;
+    }
+    .tactic-item {
+      font-size: 0.98rem;
+      line-height: 1.6;
+    }
+    .tactic-item strong {
+      font-size: 1.05rem;
     }
 
     /* Turn the whole page into a single flex column */
@@ -751,7 +907,7 @@
     /* Scenario 1 (portrait) & 2 (landscape) shared defaults */
     .course-sidebar { display: none; }
     #course-select-mobile { display: block !important; }
-    #course-info-bar { font-size: 0.75rem; flex-wrap: wrap; order: 0; }
+    #course-info-bar { font-size: 0.75rem; flex-wrap: wrap; order: 0; gap: 6px; align-items: flex-start; }
     .header-title h1 { font-size: 1rem; }
     .header-title p { display: none; }
     .header-clock .time { font-size: 1.1rem; }
@@ -759,6 +915,7 @@
 
     /* Scenario 1: Portrait phone — map = 75% of screen height */
     .map-area { height: 75dvh; min-height: 300px; flex: none; }
+    .leaflet-control-zoom { display: none !important; }
   }
 
   /* Scenario 2: Landscape phone — map = 50% of screen height (already wide, less tall needed) */
@@ -782,6 +939,7 @@
     .header-clock .time { font-size: 1.1rem; }
     .header-clock .date { display: none; }
     .map-area { height: 50dvh; min-height: 220px; flex: none; }
+    .leaflet-control-zoom { display: none !important; }
   }
 </style>
 </head>
@@ -836,41 +994,52 @@
       </div>
       <div class="conditions-grid">
         <div class="cond-item">
-          <div class="cond-label">Wind Speed</div>
-          <div class="cond-value" id="wind-speed">--</div>
-          <div class="cond-sub" id="wind-beaufort">Beaufort --</div>
+          <div class="cond-label">💨 Wind Speed</div>
+          <div class="cond-value cond-value-big" id="wind-speed">--</div>
+          <div class="cond-sub" id="wind-beaufort">kn</div>
         </div>
-        <div class="cond-item wind-arrow-wrap">
-          <div class="cond-label">Direction</div>
-          <div class="wind-compass">
-            <svg viewBox="0 0 48 48" id="compass-svg">
-              <circle cx="24" cy="24" r="22" fill="#f5f6ff" stroke="#ddd" stroke-width="1.5"/>
-              <text x="24" y="8" text-anchor="middle" font-size="7" fill="#666" font-family="sans-serif">N</text>
-              <text x="24" y="43" text-anchor="middle" font-size="7" fill="#666" font-family="sans-serif">S</text>
-              <text x="6" y="27" text-anchor="middle" font-size="7" fill="#666" font-family="sans-serif">W</text>
-              <text x="42" y="27" text-anchor="middle" font-size="7" fill="#666" font-family="sans-serif">E</text>
-              <g id="wind-arrow" transform="rotate(0, 24, 24)">
-                <polygon points="24,8 20,28 24,24 28,28" fill="#2ea3f2"/>
-                <polygon points="24,40 20,20 24,24 28,20" fill="#dc3545" opacity="0.5"/>
-              </g>
-            </svg>
-          </div>
-          <div class="cond-sub" id="wind-dir-text">--</div>
+        <div class="cond-item cond-item-direction">
+          <div class="cond-label">🧭 Direction</div>
+          <div class="cond-value cond-value-direction" id="wind-dir-cardinal">--</div>
+          <div class="cond-sub cond-sub-direction" id="wind-dir-text">--</div>
         </div>
         <div class="cond-item">
-          <div class="cond-label">Gusts</div>
-          <div class="cond-value" id="wind-gusts">--</div>
+          <div class="cond-label">💥 Gusts</div>
+          <div class="cond-value cond-value-big" id="wind-gusts">--</div>
           <div class="cond-sub">kn</div>
         </div>
         <div class="cond-item">
-          <div class="cond-label">Temperature</div>
+          <div class="cond-label">🌊 Tide Now</div>
+          <div class="cond-value" id="tide-now-state">--</div>
+          <div class="cond-sub" id="tide-now-dir">--</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-label">🌡 Temperature</div>
           <div class="cond-value" id="temperature">--</div>
           <div class="cond-sub">°C</div>
         </div>
-        <div class="cond-item" style="grid-column:1/3">
-          <div class="cond-label">Precipitation Probability</div>
+        <div class="cond-item">
+          <div class="cond-label">🌧 Rain</div>
           <div class="cond-value" id="precip-prob">--</div>
           <div class="cond-sub">%</div>
+        </div>
+      </div>
+      <div class="card-title" style="margin-top:12px;">📈 Trends Over Race Period</div>
+      <div class="trend-grid">
+        <div class="cond-item">
+          <div class="cond-label">Wind</div>
+          <div class="cond-value" id="wind-trend">--</div>
+          <div class="cond-sub" id="wind-trend-window">forecast window</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-label">Tide</div>
+          <div class="cond-value" id="tide-trend">--</div>
+          <div class="cond-sub" id="tide-trend-window">forecast window</div>
+        </div>
+        <div class="cond-item">
+          <div class="cond-label">Estimated Race Length</div>
+          <div class="cond-value" id="race-estimated-time">--</div>
+          <div class="cond-sub" id="race-window-time">hours</div>
         </div>
       </div>
       <!-- Beaufort scale bar -->
@@ -917,7 +1086,7 @@
     <!-- WIND FORECAST CHART -->
     <div class="card" id="card-forecast">
       <div class="card-title">
-        📈 3-Day Wind Forecast
+        📈 Race Window + 6h Wind Forecast
         <span id="chart-spinner" class="spinner"></span>
       </div>
       <div class="section-meta">
@@ -958,7 +1127,7 @@
     <div class="card" id="card-sources">
       <div class="card-title">🔎 Data Sources</div>
       <div style="font-size:0.76rem;line-height:1.45;opacity:0.88;display:grid;gap:6px;">
-        <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — GFS model, Stanley Point / Devonport (13km resolution, 3-hourly) <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
+        <div><b>Wind conditions &amp; forecast:</b> <a href="https://www.windfinder.com/forecast/stanley_point_devonport" target="_blank">Windfinder</a> — model source, but dashboard display is trimmed to the next 12 hours <span class="status-chip status-chip-modelled" style="font-size:0.65rem;padding:1px 6px;">📡 MODELLED</span></div>
         <div style="opacity:0.7;font-size:0.72rem;padding-left:8px;">⚠️ This is a forecast model, not a live weather station. Data updates every 6 hours with each GFS model run.</div>
         <div><b>Wind sources:</b> MetService Point Forecast is now the primary NZ forecast source, with Open-Meteo and Windfinder as cross-checks</div>
         <div><b>MetService datasets:</b> the listed GFS, ECMWF and WW3 products are forecast/model feeds, not live observations</div>
@@ -978,7 +1147,7 @@
       <span style="opacity:0.55;font-size:0.72rem;white-space:nowrap;">Course:</span>
       <strong id="active-course-name" style="color:var(--blue);white-space:nowrap;">—</strong>
       <span id="active-course-dist" style="opacity:0.6;font-size:0.75rem;white-space:nowrap;"></span>
-      <span class="route-sequence" id="active-course-wps" style="font-size:0.7rem;opacity:0.75;flex:1;min-width:0;"></span>
+      <span class="route-sequence" id="active-course-wps" style="font-size:0.7rem;opacity:0.75;flex:1;min-width:0;display:block;"></span>
       <span class="course-refresh-note" id="course-refresh-note"></span>
       <!-- Mobile-only native select — most reliable tap target on iOS/Android -->
       <!-- Mobile series tabs -->
@@ -993,12 +1162,8 @@
     </div>
     <div class="map-area" style="position:relative;">
       <div class="map-control-stack">
-        <button id="wind-anim-toggle" class="map-control-btn" onclick="toggleWindAnim()">💨 Wind ON</button>
-        <button id="location-toggle" class="map-control-btn" onclick="centerOnUserLocation()">📍 Locate me</button>
-        <button id="startline-boat-btn" class="map-control-btn" onclick="beginStartLineCapture('committee')">⛵ Mark committee boat end</button>
-        <button id="startline-pin-btn" class="map-control-btn" onclick="beginStartLineCapture('pin')">📍 Mark pin/buoy end</button>
-        <button id="startline-swap-btn" class="map-control-btn" onclick="swapCapturedStartLine()">⇄ Swap ends</button>
-        <button id="startline-reset-btn" class="map-control-btn" onclick="resetCapturedStartLine()">✖ Reset start line</button>
+        <button id="startline-boat-btn" class="map-control-btn map-control-btn-icon" onclick="beginStartLineCapture('committee')" title="Capture committee boat end from phone GPS" aria-label="Capture committee boat end from phone GPS">🚤</button>
+        <button id="startline-pin-btn" class="map-control-btn map-control-btn-icon" onclick="beginStartLineCapture('pin')" title="Capture pin or buoy end from phone GPS" aria-label="Capture pin or buoy end from phone GPS">📌</button>
       </div>
       <div id="map"></div>
       <div class="tide-set-pill" id="tide-set-pill">Approx tide set loading…</div>
@@ -1024,19 +1189,19 @@
 const BUOYS = {
   "Start":           { lat: -36.8600, lng: 174.8880, color: "#2ea3f2", label: "START — Position varies (committee boat)" },
   "LeewardMark":     { lat: -36.8600, lng: 174.8880, color: "#2ea3f2", label: "Leeward Mark (RC buoy / committee boat)" },
-  "Finish":          { lat: -36.8492, lng: 174.8780, color: "#2ea3f2", label: "FINISH — Karaka Light (Fl.G.3s)" },
+  "Finish":          { lat: -36.8492, lng: 174.8780, color: "#2ea3f2", label: "FINISH — Karaka Light" },
   "Motukorea":       { lat: -36.8300, lng: 174.8667, color: "#f5c518", label: "Motukorea Yellow Buoy" },
   "Iliomama":        { lat: -36.8117, lng: 174.8770, color: "#f5c518", label: "Iliomama Racing Buoy" },
   "Motuihe":         { lat: -36.8085, lng: 174.9195, color: "#28a745", label: "Motuihe Green Buoy" },
   "NorthHead":       { lat: -36.8272, lng: 174.8180, color: "#e67e22", label: "North Head Race Buoy" },
-  "Rangitoto":       { lat: -36.8133, lng: 174.8473, color: "#e74c3c", label: "Rangitoto Race Buoy (13)" },
+  "Rangitoto":       { lat: -36.8133, lng: 174.8473, color: "#e74c3c", label: "Rangitoto Race Buoy" },
   "RoughRock":       { lat: -36.8178, lng: 174.8250, color: "#9b59b6", label: "Rough Rock Race Buoy" },
   "SaltWorks":       { lat: -36.7967, lng: 174.8227, color: "#1abc9c", label: "Salt Works Race Buoy" },
   "NarrowNeck":      { lat: -36.7972, lng: 174.8085, color: "#e91e63", label: "Narrow Neck Race Buoy" },
   "NorthernLeading": { lat: -36.8222, lng: 174.8433, color: "#ff9800", label: "Northern Leading Yellow Buoy" },
   "BrownsBeacon":    { lat: -36.8240, lng: 174.8988, color: "#607d8b", label: "Browns Island Beacon" },
   "NavyBuoy":        { lat: -36.8280, lng: 174.9030, color: "#3f51b5", label: "Navy Buoy Browns Island" },
-  "Karaka":          { lat: -36.8492, lng: 174.8780, color: "#795548", label: "Karaka Light (Fl.G.3s)" },
+  "Karaka":          { lat: -36.8492, lng: 174.8780, color: "#795548", label: "Karaka Light" },
   "McKenzie":        { lat: -36.7807, lng: 174.8175, color: "#00bcd4", label: "McKenzie Race Buoy" },
   "BeanRock":        { lat: -36.8364, lng: 174.8268, color: "#e74c3c", label: "Bean Rock Racing Buoy" },
   "DorisRock":       { lat: -36.8430, lng: 174.8312, color: "#e91e63", label: "Doris Rock" },
@@ -1369,9 +1534,12 @@ function onStationChange() {
   if (desc) desc.textContent = STATION_DESCS[sel] || '';
   if (activeCourseId !== null) {
     lastCourseImplicationSignature = '';
+    const raceHours = syncRaceWindowDisplays(getCourseById(activeCourseId));
+    fetchForecastChart(raceHours + 6).then(() => fetchLiveConditions());
+    return;
   }
-  fetchLiveConditions();
   fetchForecastChart();
+  fetchLiveConditions();
 }
 
 async function fetchLiveConditions() {
@@ -1412,11 +1580,16 @@ async function fetchLiveConditions() {
   currentWeatherObs = obs;
   const bf = knotsToBeaufort(windKn);
   const previousWindDir = currentWindDir;
+  const raceHours = syncRaceWindowDisplays(activeCourseId !== null ? getCourseById(activeCourseId) : null);
+  const liveTrend = currentForecastSeries ? getForecastWindowSummary(raceHours) : null;
 
-  document.getElementById('wind-speed').textContent = windKn.toFixed(1) + ' kn';
+  document.getElementById('wind-speed').textContent = windKn.toFixed(1);
   document.getElementById('wind-speed').style.color = beaufortColor(bf);
-  document.getElementById('wind-beaufort').textContent = `Beaufort ${bf} — ${beaufortDescription(bf)}`;
+  document.getElementById('wind-beaufort').textContent = 'kn';
   document.getElementById('wind-gusts').textContent = gustKn.toFixed(1);
+  document.getElementById('wind-dir-cardinal').textContent = directionText(dir);
+  document.getElementById('wind-dir-text').textContent = `${Math.round(dir)}°`;
+  document.getElementById('wind-trend').textContent = describeWindTrend(raceHours);
   document.getElementById('temperature').textContent = temp.toFixed(1);
   document.getElementById('precip-prob').textContent = precipPct !== undefined ? precipPct : '--';
 
@@ -1439,12 +1612,9 @@ async function fetchLiveConditions() {
     }
   }
 
-  document.getElementById('wind-dir-text').textContent = directionText(dir) + ` (${Math.round(dir)}°)`;
   currentWindDir = dir;
   currentWindSpeed = windKn;
   updateWindAnimation(dir, windKn);
-
-  document.getElementById('wind-arrow').setAttribute('transform', `rotate(${dir}, 24, 24)`);
 
   updateBeaufortBar(bf);
   updateSailingStatus(bf);
@@ -1454,6 +1624,11 @@ async function fetchLiveConditions() {
     `${obsLabel}: ` + obsTime.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland' });
 
   document.getElementById('conditions-spinner').style.display = 'none';
+
+  if (activeCourseId !== null && !capturedStartLine && previousWindDir == null) {
+    selectCourse(activeCourseId, { preserveView: true, autoRedraw: true, reason: 'Start line loaded from wind' });
+    return;
+  }
 
   if (activeCourseId !== null) {
     const windShift = previousWindDir == null ? null : Math.abs(smallestAngleDiff(dir, previousWindDir));
@@ -1465,10 +1640,12 @@ async function fetchLiveConditions() {
   }
 }
 
-async function fetchForecastChart() {
+async function fetchForecastChart(hoursToShow = null) {
   document.getElementById('chart-spinner').style.display = 'inline-block';
   const selectedModel = (document.getElementById('wx-station-select') || {}).value || 'metservice';
+  const chartEl = document.getElementById('wind-chart');
   const srcLink = document.querySelector('#card-forecast .source-chip a');
+  const forecastHours = Math.max(6, Math.ceil(hoursToShow ?? ((activeCourseId !== null ? estimateRaceWindowHours(getCourseById(activeCourseId)) : 6) + 6)));
 
   async function loadMetServiceForecast() {
     const series = await fetchMetServiceSeries(72);
@@ -1537,43 +1714,50 @@ async function fetchForecastChart() {
     }
     if (!loaded) throw new Error('No forecast source available');
 
-    if (loaded.forecast) buildWindChartFromWF(loaded.forecast);
-    else buildWindChart(loaded.hourly);
+    if (loaded.forecast) buildWindChartFromWF(loaded.forecast, forecastHours);
+    else buildWindChart(loaded.hourly, forecastHours);
 
     currentForecastModel = loaded.model;
     currentForecastSeries = loaded.forecast || loaded.hourly;
+    if (chartEl) {
+      chartEl.style.opacity = '1';
+      chartEl.style.visibility = 'visible';
+    }
     document.getElementById('chart-location-label').textContent = loaded.label;
     if (srcLink) {
       srcLink.href = loaded.href;
       srcLink.textContent = loaded.linkText;
     }
     document.getElementById('chart-spinner').style.display = 'none';
-    if (activeCourseId !== null) redrawActiveCourseIfImplicationsChanged('Forecast model changed — tactics refreshed');
+    if (activeCourseId !== null) {
+      const activeCourse = getCourseById(activeCourseId);
+      const raceHours = getActiveRaceWindowHours(activeCourse);
+      updateRaceTrendSummary(raceHours);
+      redrawActiveCourseIfImplicationsChanged('Forecast model changed — tactics refreshed');
+    }
     return;
   } catch (e) {
     console.error('Forecast chart failed across MetService, Open-Meteo, and Windfinder:', e);
   }
   currentForecastModel = null;
   currentForecastSeries = null;
+  if (chartEl && windChart) {
+    chartEl.style.opacity = '1';
+    chartEl.style.visibility = 'visible';
+  }
   document.getElementById('chart-spinner').style.display = 'none';
 }
 
-function buildWindChartFromWF(forecast) {
-  // forecast is [{dtl, windKn, gustKn, dir}, ...]
-  const times = forecast.map(f => f.dtl);
-  const speeds = forecast.map(f => f.windKn);
-  const gusts = forecast.map(f => f.gustKn);
+function buildWindChartFromWF(forecast, hoursToShow = 12) {
+  const maxPoints = Math.max(3, Math.min(forecast.length, Math.ceil(hoursToShow / 3)));
+  const trimmed = forecast.slice(0, maxPoints);
+  const times = trimmed.map(f => f.dtl);
+  const speeds = trimmed.map(f => f.windKn);
+  const gusts = trimmed.map(f => f.gustKn);
 
-  // Build day labels (every new calendar day in Auckland TZ)
-  let lastDay = null;
   const labels = times.map((t) => {
     const d = new Date(t);
-    const dayStr = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', weekday: 'short', day: 'numeric' });
-    if (dayStr !== lastDay) {
-      lastDay = dayStr;
-      return dayStr;
-    }
-    return '';
+    return d.toLocaleTimeString('en-NZ', { hour: 'numeric', minute: '2-digit', timeZone: 'Pacific/Auckland' });
   });
 
   const greenLimit = 22;
@@ -1633,16 +1817,18 @@ function buildWindChartFromWF(forecast) {
             maxRotation: 0,
             font: { size: 9 },
             color: '#888',
-            autoSkip: false,
+            autoSkip: true,
+            maxTicksLimit: 8,
             callback: (val, i) => labels[i] || null,
           },
           grid: { color: 'rgba(0,0,0,0.04)' },
         },
         y: {
           min: 0,
-          ticks: { font: { size: 9 }, color: '#888' },
-          grid: { color: 'rgba(0,0,0,0.04)' },
-          title: { display: true, text: 'knots', font: { size: 9 }, color: '#888' },
+          ticks: { stepSize: 5, font: { size: 10 }, color: '#666', display: true },
+          grid: { color: 'rgba(0,0,0,0.08)' },
+          border: { display: true, color: 'rgba(0,0,0,0.18)' },
+          title: { display: true, text: 'knots', font: { size: 10 }, color: '#666' },
         },
       },
     },
@@ -1667,9 +1853,127 @@ function buildWindChartFromWF(forecast) {
   });
 }
 
+function buildForecastPoints() {
+  const data = currentForecastSeries;
+  if (!data) return [];
+  if (Array.isArray(data.forecast)) {
+    return data.forecast.map(f => ({
+      t: new Date(f.dtl).getTime(),
+      windKn: Number(f.windKn ?? 0),
+      gustKn: Number(f.gustKn ?? f.windKn ?? 0),
+      dir: Number(f.dir ?? NaN),
+    }));
+  }
+  if (Array.isArray(data.time)) {
+    return data.time.map((t, i) => ({
+      t: new Date(t).getTime(),
+      windKn: Number((data.wind_speed_10m || [])[i] ?? 0),
+      gustKn: Number((data.wind_gusts_10m || [])[i] ?? (data.wind_speed_10m || [])[i] ?? 0),
+      dir: Number((data.wind_direction_10m || [])[i] ?? NaN),
+    }));
+  }
+  return [];
+}
+
+function describeTideNow(tideState) {
+  if (!tideState) return { state: '--', dir: '--' };
+  let state = 'Mid current';
+  if (tideState.stage === 'near-slack') state = 'Slack';
+  else if (tideState.stage === 'peak') state = 'Strongest';
+  else if (tideState.stage === 'building') state = 'Building';
+  else if (tideState.stage === 'easing' || tideState.stage === 'late-easing') state = 'Easing';
+  const phaseLabel = tideState.phase === 'ebb' ? 'ebb' : 'flood';
+  const dir = `${phaseLabel} ${directionText(tideState.vector?.bearing || 0)}`;
+  return { state, dir };
+}
+
+function describeTideTrend(tideState, hours) {
+  if (!tideState) return 'Tide timing unavailable';
+  const raceEndTs = Date.now() + hours * 3600 * 1000;
+  const tideTurnsDuringRace = !!(tideState.nextEventTime && tideState.nextEventTime <= raceEndTs);
+  if (!tideTurnsDuringRace) {
+    if (tideState.stage === 'peak') return 'Strongest now, then easing';
+    if (tideState.stage === 'easing' || tideState.stage === 'late-easing') return 'Easing through race period';
+    if (tideState.stage === 'building') return 'Building through race period';
+    if (tideState.stage === 'near-slack') return 'Slack now, then building';
+    return 'Holding about the same';
+  }
+  return tideState.next?.type === 'High'
+    ? 'Flood now, then turns to ebb'
+    : 'Ebb now, then turns to flood';
+}
+
+function describeWindTrend(hours) {
+  const forecastWindow = getForecastWindowSummary(hours);
+  if (forecastWindow) {
+    const trendWord = forecastWindow.trend === 'easing'
+      ? 'Easing'
+      : forecastWindow.trend === 'building'
+        ? 'Building'
+        : 'Holding';
+    const target = Number.isFinite(forecastWindow.maxWind)
+      ? forecastWindow.trend === 'easing'
+        ? Math.round(forecastWindow.minWind)
+        : Math.round(forecastWindow.maxWind)
+      : Math.round(forecastWindow.avgWind || 0);
+    return `${trendWord} to ${target} kn`;
+  }
+
+  const fallbackPoints = buildForecastPoints().filter(p => Number.isFinite(p.windKn));
+  if (!fallbackPoints.length) return 'Forecast loading';
+
+  const now = Date.now();
+  const end = now + hours * 3600 * 1000;
+  const relevant = fallbackPoints.filter(p => Number.isFinite(p.t) && p.t >= now && p.t <= end);
+  const usable = relevant.length ? relevant : fallbackPoints.slice(0, Math.max(2, Math.min(fallbackPoints.length, Math.ceil(hours))));
+  if (!usable.length) return 'Forecast loading';
+
+  const first = usable[0].windKn;
+  const last = usable[usable.length - 1].windKn;
+  const peak = Math.max(...usable.map(p => p.windKn));
+  const trough = Math.min(...usable.map(p => p.windKn));
+  if (last - first >= 1.5) return `Building to ${Math.round(peak)} kn`;
+  if (first - last >= 1.5) return `Easing to ${Math.round(trough)} kn`;
+  return `Holding around ${Math.round((first + last) / 2)} kn`;
+}
+
+async function updateRaceTrendSummary(raceHours = null) {
+  const course = activeCourseId !== null ? getCourseById(activeCourseId) : null;
+  const hours = raceHours ?? getActiveRaceWindowHours(course);
+  const tideState = currentTideState;
+  const tideNow = describeTideNow(tideState);
+  const tideTrendEl = document.getElementById('tide-trend');
+  const tideTrendWindowEl = document.getElementById('tide-trend-window');
+  const tideNowStateEl = document.getElementById('tide-now-state');
+  const tideNowDirEl = document.getElementById('tide-now-dir');
+  const windTrendEl = document.getElementById('wind-trend');
+  const windTrendWindowEl = document.getElementById('wind-trend-window');
+
+  if (tideNowStateEl) tideNowStateEl.textContent = tideNow.state;
+  if (tideNowDirEl) tideNowDirEl.textContent = tideNow.dir;
+  const windowText = formatHoursMinutes(hours);
+  if (tideTrendEl) tideTrendEl.textContent = describeTideTrend(tideState, hours);
+  if (tideTrendWindowEl) tideTrendWindowEl.textContent = `over ${windowText} forecast window`;
+  if (windTrendEl) windTrendEl.textContent = describeWindTrend(hours);
+  if (windTrendWindowEl) windTrendWindowEl.textContent = `over ${windowText} forecast window`;
+}
+
+async function refreshCourseDependentData(course = null, options = {}) {
+  const targetCourse = course || (activeCourseId !== null ? getCourseById(activeCourseId) : null);
+  const raceHours = syncRaceWindowDisplays(targetCourse);
+  if (!options.skipForecast) {
+    await fetchForecastChart(raceHours + 6);
+  }
+  if (!options.skipTides) {
+    await computeTides();
+  }
+  if (targetCourse && !options.skipTactics) renderTactics(targetCourse);
+}
+
 async function fetchWeather() {
+  const raceHours = getActiveRaceWindowHours();
+  await fetchForecastChart(activeCourseId !== null ? raceHours + 6 : null);
   await fetchLiveConditions();
-  await fetchForecastChart();
 }
 
 function updateSailingStatus(bf) {
@@ -1692,18 +1996,15 @@ function updateSailingStatus(bf) {
   }
 }
 
-function buildWindChart(hourly) {
-  const times = hourly.time.slice(0, 72); // 3 days × 24h
-  const speeds = hourly.wind_speed_10m.slice(0, 72);
-  const gusts = hourly.wind_gusts_10m.slice(0, 72);
+function buildWindChart(hourly, hoursToShow = 12) {
+  const maxPoints = Math.max(4, Math.min(hourly.time.length, Math.ceil(hoursToShow)));
+  const times = hourly.time.slice(0, maxPoints);
+  const speeds = hourly.wind_speed_10m.slice(0, maxPoints);
+  const gusts = hourly.wind_gusts_10m.slice(0, maxPoints);
 
-  // Label every 24h
-  const labels = times.map((t, i) => {
-    if (i % 24 === 0) {
-      const d = new Date(t);
-      return d.toLocaleDateString('en-NZ', { weekday: 'short', day: 'numeric', timeZone: 'Pacific/Auckland' });
-    }
-    return '';
+  const labels = times.map((t) => {
+    const d = new Date(t);
+    return d.toLocaleTimeString('en-NZ', { hour: 'numeric', minute: '2-digit', timeZone: 'Pacific/Auckland' });
   });
 
   const greenLimit = 22;
@@ -1767,16 +2068,18 @@ function buildWindChart(hourly) {
             maxRotation: 0,
             font: { size: 9 },
             color: '#888',
-            autoSkip: false,
+            autoSkip: true,
+            maxTicksLimit: 8,
             callback: (val, i) => labels[i] || null,
           },
           grid: { color: 'rgba(0,0,0,0.04)' }
         },
         y: {
           min: 0,
-          ticks: { font: { size: 9 }, color: '#888' },
-          grid: { color: 'rgba(0,0,0,0.04)' },
-          title: { display: true, text: 'knots', font: { size: 9 }, color: '#888' }
+          ticks: { stepSize: 5, font: { size: 10 }, color: '#666', display: true },
+          grid: { color: 'rgba(0,0,0,0.08)' },
+          border: { display: true, color: 'rgba(0,0,0,0.18)' },
+          title: { display: true, text: 'knots', font: { size: 10 }, color: '#666' }
         }
       }
     },
@@ -1916,29 +2219,54 @@ async function computeTides() {
     const data = await resp.json();
     if (!data.events || !data.events.length) throw new Error('No tide events returned');
 
-    tideList.innerHTML = '';
-    for (const e of data.events) {
+    const events = (data.events || []).slice().sort((a, b) => (tideEventTimestamp(a) || 0) - (tideEventTimestamp(b) || 0));
+    const nowTs = Date.now();
+    const raceHours = getActiveRaceWindowHours();
+    const raceEndTs = nowTs + raceHours * 3600 * 1000;
+    const lastEvent = events.filter(e => {
+      const ts = tideEventTimestamp(e) || 0;
+      return ts && ts <= nowTs;
+    }).slice(-1)[0] || events[0] || null;
+    const nextEvent = events.find(e => {
+      const ts = tideEventTimestamp(e) || 0;
+      return ts > nowTs && ts <= raceEndTs;
+    }) || events.find(e => {
+      const ts = tideEventTimestamp(e) || 0;
+      return ts > nowTs;
+    }) || null;
+    const renderTideItem = (e, isPast = false) => {
+      if (!e) return '';
       const d = new Date(`${e.date}T${e.time24}:00`);
       const dateStr = d.toLocaleDateString('en-NZ', {
         timeZone: 'Pacific/Auckland', weekday: 'short', month: 'short', day: 'numeric'
       });
-      const item = document.createElement('div');
-      item.className = 'tide-item';
-      if (e.past) item.style.opacity = '0.55';
-      item.innerHTML = `
-        <span class="tide-type ${e.type === 'High' ? 'tide-high' : 'tide-low'}">${e.type === 'High' ? 'HW' : 'LW'}</span>
-        <span class="tide-time">${e.past ? '✓ ' : ''}${dateStr} ${e.time12}</span>
-        <span class="tide-height">${e.height.toFixed(2)}m</span>
+      return `
+        <div class="tide-item"${isPast ? ' style="opacity:0.5;"' : ''}>
+          <span class="tide-type ${e.type === 'High' ? 'tide-high' : 'tide-low'}">${e.type === 'High' ? 'HW' : 'LW'}</span>
+          <span class="tide-time">${isPast ? 'Last:' : 'Next:'} ${e.type} ${e.time12}<span class="tide-height">${dateStr} · ${e.height.toFixed(2)}m</span></span>
+        </div>
       `;
-      tideList.appendChild(item);
-    }
+    };
+    tideList.innerHTML = `${renderTideItem(lastEvent, true)}${renderTideItem(nextEvent, false)}` || '<div style="opacity:0.7;font-size:0.8rem;">No tide events in race window.</div>';
 
     const tideState = deriveTideState(data);
-    currentTideState = tideState;
-    const rising = data.next && data.next.type === 'High';
-    document.getElementById('tide-arrow').textContent = rising ? '↑' : '↓';
-    document.getElementById('tide-state-text').textContent = data.next
-      ? `${rising ? 'Rising to' : 'Falling to'} next ${data.next.type.toLowerCase()} at ${data.next.time12}`
+    currentTideState = tideState ? {
+      ...tideState,
+      lastEvent,
+      nextEvent,
+    } : {
+      phase: lastEvent && nextEvent
+        ? (lastEvent.type === 'Low' && nextEvent.type === 'High' ? 'flood' : lastEvent.type === 'High' && nextEvent.type === 'Low' ? 'ebb' : null)
+        : null,
+      lastEvent,
+      nextEvent,
+      nextEventTime: tideEventTimestamp(nextEvent),
+      minutesToNextTurn: nextEvent ? Math.round((tideEventTimestamp(nextEvent) - nowTs) / 60000) : null,
+    };
+    const rising = nextEvent && nextEvent.type === 'High';
+    document.getElementById('tide-arrow').textContent = nextEvent ? (rising ? '↑' : '↓') : '•';
+    document.getElementById('tide-state-text').textContent = nextEvent
+      ? `${rising ? 'Rising to' : 'Falling to'} next ${nextEvent.type.toLowerCase()} at ${nextEvent.time12}`
       : 'Tide data loaded';
 
     const tideSetPill = document.getElementById('tide-set-pill');
@@ -1947,6 +2275,8 @@ async function computeTides() {
         ? `<strong>${tideState.phase === 'ebb' ? 'Ebb' : 'Flood'} set ${directionText(tideState.vector?.bearing || 0)}</strong> ${tideState.minutesToNextTurn != null && tideState.minutesToNextTurn <= 150 ? `turning in ${Math.max(tideState.minutesToNextTurn, 0)} min` : 'holds through race period'}`
         : 'Tide set unavailable';
     }
+    updateTideAnimation(currentTideState?.vector?.bearing, currentTideState?.strength);
+    updateRaceTrendSummary(raceHours);
 
     if (activeCourseId !== null) {
       redrawActiveCourseIfImplicationsChanged('Tide phase changed — course redrawn');
@@ -1954,6 +2284,7 @@ async function computeTides() {
   } catch (err) {
     console.error('Tide fetch failed', err);
     currentTideState = null;
+    updateTideAnimation(115, 0.15);
     document.getElementById('tide-arrow').textContent = '•';
     document.getElementById('tide-state-text').textContent = 'Tide data unavailable';
     document.getElementById('tide-set-pill').textContent = 'Approx tactical tide set unavailable.';
@@ -2188,10 +2519,48 @@ function courseUsesDynamicStart(course) {
 }
 
 function setLocationButton(label, disabled = false) {
-  const btn = document.getElementById('location-toggle');
+}
+
+function calculateStartLineBias(line, windDir = currentWindDir) {
+  if (!line?.committeeEnd || !line?.pinEnd || windDir == null) return null;
+  const midpoint = line.midpoint || [(line.committeeEnd[0] + line.pinEnd[0]) / 2, (line.committeeEnd[1] + line.pinEnd[1]) / 2];
+  const lineBearing = line.lineBearing ?? bearingBetween(line.committeeEnd, line.pinEnd);
+  const linePerpA = normalizeAngle360(lineBearing - 90);
+  const linePerpB = normalizeAngle360(lineBearing + 90);
+  const upwindBearing = normalizeAngle360(windDir);
+  const moreUpwindBearing = Math.abs(smallestAngleDiff(linePerpA, upwindBearing)) < Math.abs(smallestAngleDiff(linePerpB, upwindBearing)) ? linePerpA : linePerpB;
+  const committeeAdvance = Math.cos(smallestAngleDiff(bearingBetween(midpoint, line.committeeEnd), moreUpwindBearing) * Math.PI / 180) * coordDistanceNm(midpoint, line.committeeEnd);
+  const pinAdvance = Math.cos(smallestAngleDiff(bearingBetween(midpoint, line.pinEnd), moreUpwindBearing) * Math.PI / 180) * coordDistanceNm(midpoint, line.pinEnd);
+  const edgeMeters = Math.round(Math.abs(committeeAdvance - pinAdvance) * 1852);
+  if (edgeMeters < 8) {
+    return {
+      favored: 'square',
+      meters: edgeMeters,
+      shortLabel: 'Start anywhere',
+      icon: '↔️',
+    };
+  }
+  return committeeAdvance > pinAdvance
+    ? { favored: 'committee', meters: edgeMeters, shortLabel: 'Boat favoured', icon: '🚤' }
+    : { favored: 'pin', meters: edgeMeters, shortLabel: 'Pin favoured', icon: '📌' };
+}
+
+function updateStartCaptureButtonState() {
+  const boatBtn = document.getElementById('startline-boat-btn');
+  const pinBtn = document.getElementById('startline-pin-btn');
+  if (boatBtn) boatBtn.classList.toggle('map-control-btn-captured', !!capturedStartLine?.committeeEnd);
+  if (pinBtn) pinBtn.classList.toggle('map-control-btn-captured', !!capturedStartLine?.pinEnd);
+}
+
+function pulseCapturedButton(mode) {
+  const btn = document.getElementById(mode === 'committee' ? 'startline-boat-btn' : 'startline-pin-btn');
   if (!btn) return;
-  btn.textContent = label;
-  btn.disabled = disabled;
+  btn.classList.add('map-control-btn-captured');
+  btn.style.transform = 'scale(1.06)';
+  btn.style.opacity = '1';
+  setTimeout(() => {
+    btn.style.transform = '';
+  }, 220);
 }
 
 function showCourseRefreshNote(text) {
@@ -2299,10 +2668,9 @@ function captureCurrentGpsPoint(mode) {
   }
 
   const btn = document.getElementById(mode === 'committee' ? 'startline-boat-btn' : 'startline-pin-btn');
-  const originalText = btn ? btn.textContent : '';
   if (btn) {
     btn.disabled = true;
-    btn.textContent = mode === 'committee' ? '⛵ Marking committee boat end…' : '📍 Marking pin/buoy end…';
+    btn.style.opacity = '0.85';
   }
 
   navigator.geolocation.getCurrentPosition((pos) => {
@@ -2321,6 +2689,19 @@ function captureCurrentGpsPoint(mode) {
     next.capturedAt = Date.now();
     next.accuracy = accuracy || null;
     capturedStartLine = enrichCapturedStartLine(next);
+    updateStartCaptureButtonState();
+    pulseCapturedButton(mode);
+    const bias = calculateStartLineBias(capturedStartLine);
+    showCourseRefreshNote(
+      bias
+        ? `${mode === 'committee' ? 'Committee boat' : 'Pin/buoy'} captured, ${bias.shortLabel}`
+        : (mode === 'committee' ? `Committee boat end captured (±${Math.round(accuracy || 0)}m)` : `Pin/buoy end captured (±${Math.round(accuracy || 0)}m)`)
+    );
+
+    if (btn) {
+      btn.disabled = false;
+      btn.style.opacity = '1';
+    }
 
     if (activeCourseId) {
       selectCourse(activeCourseId, {
@@ -2331,17 +2712,12 @@ function captureCurrentGpsPoint(mode) {
           : `Pin/buoy end captured (±${Math.round(accuracy || 0)}m)`
       });
     }
-
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = originalText;
-    }
   }, (err) => {
     console.warn('Start line GPS capture failed:', err.message);
     showCourseRefreshNote(mode === 'committee' ? 'Could not capture committee boat end' : 'Could not capture pin/buoy end');
     if (btn) {
       btn.disabled = false;
-      btn.textContent = originalText;
+      btn.style.opacity = '1';
     }
   }, {
     enableHighAccuracy: true,
@@ -2352,25 +2728,6 @@ function captureCurrentGpsPoint(mode) {
 
 function beginStartLineCapture(mode) {
   captureCurrentGpsPoint(mode);
-}
-
-function swapCapturedStartLine() {
-  if (!capturedStartLine?.committeeEnd || !capturedStartLine?.pinEnd) return;
-  const next = {
-    ...capturedStartLine,
-    committeeEnd: capturedStartLine.pinEnd,
-    pinEnd: capturedStartLine.committeeEnd,
-    source: 'captured',
-    capturedAt: Date.now(),
-  };
-  capturedStartLine = enrichCapturedStartLine(next);
-  if (activeCourseId) selectCourse(activeCourseId, { preserveView: true, autoRedraw: true, reason: 'Captured start line updated' });
-}
-
-function resetCapturedStartLine() {
-  capturedStartLine = null;
-  startLineCaptureMode = null;
-  if (activeCourseId) selectCourse(activeCourseId, { preserveView: true, autoRedraw: true, reason: 'Returned to estimated start line' });
 }
 
 function enrichCapturedStartLine(line) {
@@ -2393,13 +2750,24 @@ let windCtx = null;
 let windParticles = [];
 let windAnimDir = 0;
 let windAnimSpeed = 5;
+let tideCanvas = null;
+let tideCtx = null;
+let tideParticles = [];
+let tideAnimDir = 115;
+let tideAnimStrength = 0.3;
 const NUM_PARTICLES = 28;
+const NUM_TIDE_PARTICLES = 22;
 
-function resizeWindCanvas() {
-  if (!windCanvas) return;
+function resizeOverlayCanvases() {
   const mapContainer = document.getElementById('map');
-  windCanvas.width = mapContainer.offsetWidth;
-  windCanvas.height = mapContainer.offsetHeight;
+  if (windCanvas) {
+    windCanvas.width = mapContainer.offsetWidth;
+    windCanvas.height = mapContainer.offsetHeight;
+  }
+  if (tideCanvas) {
+    tideCanvas.width = mapContainer.offsetWidth;
+    tideCanvas.height = mapContainer.offsetHeight;
+  }
 }
 
 function initWindAnimation() {
@@ -2407,8 +2775,12 @@ function initWindAnimation() {
   windCanvas = document.createElement('canvas');
   windCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:450;opacity:0.82;';
   mapContainer.appendChild(windCanvas);
-  resizeWindCanvas();
+  tideCanvas = document.createElement('canvas');
+  tideCanvas.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;pointer-events:none;z-index:440;opacity:0.88;';
+  mapContainer.appendChild(tideCanvas);
+  resizeOverlayCanvases();
   windCtx = windCanvas.getContext('2d');
+  tideCtx = tideCanvas.getContext('2d');
 
   for (let i = 0; i < NUM_PARTICLES; i++) {
     windParticles.push({
@@ -2419,8 +2791,20 @@ function initWindAnimation() {
     });
   }
 
-  map.on('resize', resizeWindCanvas);
-  window.addEventListener('resize', resizeWindCanvas);
+  for (let i = 0; i < NUM_TIDE_PARTICLES; i++) {
+    tideParticles.push({
+      x: Math.random() * tideCanvas.width,
+      y: Math.random() * tideCanvas.height,
+      age: Math.random() * 100,
+      maxAge: 120 + Math.random() * 90,
+      phase: Math.random() * Math.PI * 2,
+      amplitude: 4 + Math.random() * 4,
+      wavelength: 12 + Math.random() * 10,
+    });
+  }
+
+  map.on('resize', resizeOverlayCanvases);
+  window.addEventListener('resize', resizeOverlayCanvases);
   animateWind();
 }
 
@@ -2429,15 +2813,22 @@ function updateWindAnimation(fromDeg, speedKn) {
   windAnimSpeed = speedKn;
 }
 
+function updateTideAnimation(bearingDeg, strength = 0.3) {
+  if (bearingDeg == null) return;
+  tideAnimDir = bearingDeg;
+  tideAnimStrength = Math.max(0.15, Math.min(1, strength || 0.3));
+}
+
 function animateWind() {
-  if (!windCtx) return;
+  if (!windCtx || !tideCtx) return;
   windCtx.clearRect(0, 0, windCanvas.width, windCanvas.height);
+  tideCtx.clearRect(0, 0, tideCanvas.width, tideCanvas.height);
 
   const toDir = normalizeAngle360(windAnimDir + 180);
-  const rad = toDir * Math.PI / 180;
+  const windRad = toDir * Math.PI / 180;
   const speedPx = Math.max(0.8, windAnimSpeed / 5);
-  const dx = Math.sin(rad) * speedPx;
-  const dy = -Math.cos(rad) * speedPx;
+  const dx = Math.sin(windRad) * speedPx;
+  const dy = -Math.cos(windRad) * speedPx;
 
   windParticles.forEach(p => {
     p.x += dx * 2.5;
@@ -2462,10 +2853,10 @@ function animateWind() {
 
     windCtx.save();
     windCtx.translate(p.x, p.y);
-    windCtx.rotate(rad + Math.PI);
+    windCtx.rotate(windRad + Math.PI);
     windCtx.globalAlpha = alpha;
-    windCtx.strokeStyle = '#fffde7';
-    windCtx.shadowColor = 'rgba(255, 253, 180, 0.4)';
+    windCtx.strokeStyle = '#fffef5';
+    windCtx.shadowColor = 'rgba(255, 255, 220, 0.48)';
     windCtx.shadowBlur = 5;
     windCtx.lineWidth = 1.8;
     windCtx.lineCap = 'round';
@@ -2480,6 +2871,57 @@ function animateWind() {
     windCtx.lineTo(5, 0);
     windCtx.stroke();
     windCtx.restore();
+  });
+
+  const tideRad = tideAnimDir * Math.PI / 180;
+  const tideDx = Math.sin(tideRad) * (0.6 + tideAnimStrength * 1.8);
+  const tideDy = -Math.cos(tideRad) * (0.6 + tideAnimStrength * 1.8);
+
+  tideParticles.forEach(p => {
+    p.x += tideDx * 1.5;
+    p.y += tideDy * 1.5;
+    p.age++;
+    p.phase += 0.12;
+
+    if (p.x < -40) p.x = tideCanvas.width + 20;
+    if (p.x > tideCanvas.width + 40) p.x = -20;
+    if (p.y < -40) p.y = tideCanvas.height + 20;
+    if (p.y > tideCanvas.height + 40) p.y = -20;
+
+    if (p.age > p.maxAge) {
+      p.x = Math.random() * tideCanvas.width;
+      p.y = Math.random() * tideCanvas.height;
+      p.age = 0;
+      p.maxAge = 120 + Math.random() * 90;
+      p.phase = Math.random() * Math.PI * 2;
+    }
+
+    const fadeIn = Math.min(p.age / 30, 1);
+    const fadeOut = Math.min((p.maxAge - p.age) / 30, 1);
+    const alpha = Math.min(1, fadeIn * fadeOut * (0.32 + tideAnimStrength * 0.22));
+
+    tideCtx.save();
+    tideCtx.translate(p.x, p.y);
+    tideCtx.rotate(tideRad + Math.PI / 2);
+    tideCtx.globalAlpha = alpha;
+    tideCtx.strokeStyle = '#2f9fe8';
+    tideCtx.shadowColor = 'rgba(35, 126, 196, 0.30)';
+    tideCtx.shadowBlur = 6;
+    tideCtx.lineWidth = 2.4;
+    tideCtx.lineCap = 'round';
+    tideCtx.beginPath();
+    for (let x = -16; x <= 16; x += 2) {
+      const y = Math.sin((x / p.wavelength) * Math.PI * 2 + p.phase) * p.amplitude;
+      if (x === -16) tideCtx.moveTo(x, y);
+      else tideCtx.lineTo(x, y);
+    }
+    tideCtx.stroke();
+    tideCtx.beginPath();
+    tideCtx.moveTo(10, -2);
+    tideCtx.lineTo(17, 0);
+    tideCtx.lineTo(10, 2);
+    tideCtx.stroke();
+    tideCtx.restore();
   });
 
   requestAnimationFrame(animateWind);
@@ -2605,7 +3047,7 @@ function getCourseGeometry(course) {
               note: theoreticalStart.note,
             }
           : null;
-      startCoord = startLine?.midpoint || theoreticalStart?.center || calcStartPosition(firstRealMark.lat, firstRealMark.lng, currentWindDir);
+      startCoord = startLine?.committeeEnd || theoreticalStart?.committeeEnd || calcStartPosition(firstRealMark.lat, firstRealMark.lng, currentWindDir);
       BUOYS['Start'].lat = startCoord[0];
       BUOYS['Start'].lng = startCoord[1];
     } else {
@@ -2904,35 +3346,41 @@ function parseCourseDistanceNm(distText) {
   return null;
 }
 
-function estimateRaceWindowHours(course) {
+function estimateRaceTiming(course, windKn = null) {
   const distNm = parseCourseDistanceNm(course?.dist);
-  if (!Number.isFinite(distNm)) return 2;
-  const assumedAvgSpeed = distNm <= 6 ? 4.8 : distNm <= 10 ? 5.4 : 5.9;
-  const rawHours = distNm / assumedAvgSpeed;
-  return Math.max(1.25, Math.min(3.5, rawHours));
+  if (!Number.isFinite(distNm)) {
+    return { raceHours: 1.7, windowHours: 2.0 };
+  }
+
+  const observedWind = Number.isFinite(Number(windKn)) ? Number(windKn) : Number(currentWeatherObs?.windKn);
+  const effectiveWind = Number.isFinite(observedWind) && observedWind > 0 ? observedWind : 12;
+
+  let assumedAvgSpeed;
+  if (effectiveWind < 7) assumedAvgSpeed = 4.2;
+  else if (effectiveWind < 10) assumedAvgSpeed = 4.8;
+  else if (effectiveWind < 14) assumedAvgSpeed = 5.4;
+  else if (effectiveWind < 18) assumedAvgSpeed = 5.9;
+  else if (effectiveWind < 24) assumedAvgSpeed = 6.2;
+  else assumedAvgSpeed = 6.0;
+
+  if (distNm >= 12) assumedAvgSpeed += 0.2;
+  if (distNm <= 6) assumedAvgSpeed -= 0.2;
+
+  const raceHours = Math.max(1.0, Math.min(4.25, distNm / assumedAvgSpeed));
+  const contingencyHours = distNm <= 6 ? 0.22 : distNm <= 10 ? 0.28 : distNm <= 14 ? 0.35 : 0.42;
+  const windowHours = Math.max(raceHours + 0.15, Math.min(4.75, raceHours + contingencyHours));
+  return { raceHours, windowHours };
+}
+
+function estimateRaceWindowHours(course, windKn = null) {
+  return estimateRaceTiming(course, windKn).windowHours;
 }
 
 function getForecastWindowSummary(hours = 2) {
-  const model = currentForecastModel;
   const data = currentForecastSeries;
-  if (!model || !data) return null;
+  if (!data) return null;
 
-  let points = [];
-  if (Array.isArray(data.forecast)) {
-    points = data.forecast.map(f => ({
-      t: new Date(f.dtl).getTime(),
-      windKn: Number(f.windKn ?? 0),
-      gustKn: Number(f.gustKn ?? f.windKn ?? 0),
-      dir: Number(f.dir ?? NaN),
-    }));
-  } else if (Array.isArray(data.time)) {
-    points = data.time.map((t, i) => ({
-      t: new Date(t).getTime(),
-      windKn: Number((data.wind_speed_10m || [])[i] ?? 0),
-      gustKn: Number((data.wind_gusts_10m || [])[i] ?? (data.wind_speed_10m || [])[i] ?? 0),
-      dir: Number((data.wind_direction_10m || [])[i] ?? NaN),
-    }));
-  }
+  const points = buildForecastPoints();
   if (!points.length) return null;
 
   const now = Date.now();
@@ -2956,7 +3404,7 @@ function getForecastWindowSummary(hours = 2) {
   const trend = Math.abs(speedDelta) < 2 ? 'steady' : speedDelta < 0 ? 'easing' : 'building';
 
   return {
-    model,
+    model: currentForecastModel || 'forecast',
     hours,
     window,
     avgWind,
@@ -2971,6 +3419,46 @@ function getForecastWindowSummary(hours = 2) {
   };
 }
 
+function getActiveRaceWindowHours(course = null) {
+  const activeCourse = course || (activeCourseId !== null ? getCourseById(activeCourseId) : null);
+  return estimateRaceWindowHours(activeCourse, currentWeatherObs?.windKn);
+}
+
+function formatHoursMinutes(hours) {
+  if (!Number.isFinite(hours)) return '--';
+  const totalMinutes = Math.max(1, Math.round(hours * 60));
+  const h = Math.floor(totalMinutes / 60);
+  const m = totalMinutes % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h}h`;
+  return `${m}m`;
+}
+
+function updateRaceWindowLabel(course = null) {
+  const activeCourse = course || (activeCourseId !== null ? getCourseById(activeCourseId) : null);
+  const timing = estimateRaceTiming(activeCourse, currentWeatherObs?.windKn);
+  const raceHours = timing.raceHours;
+  const windowHours = timing.windowHours;
+  const windowText = formatHoursMinutes(windowHours);
+
+  const el = document.getElementById('wind-trend-window');
+  if (el) el.textContent = `over ${windowText} forecast window`;
+
+  const raceTimeEl = document.getElementById('race-estimated-time');
+  const raceWindowEl = document.getElementById('race-window-time');
+  if (raceTimeEl) raceTimeEl.textContent = formatHoursMinutes(raceHours);
+  if (raceWindowEl) raceWindowEl.textContent = `based on ${windowText} forecast window`;
+
+  return windowHours;
+}
+
+function syncRaceWindowDisplays(course = null) {
+  const activeCourse = course || (activeCourseId !== null ? getCourseById(activeCourseId) : null);
+  const raceHours = updateRaceWindowLabel(activeCourse);
+  updateRaceTrendSummary(raceHours);
+  return raceHours;
+}
+
 function buildCourseImplicationSignature(course) {
   if (!course) return '';
   const geometry = getCourseGeometry(course);
@@ -2980,6 +3468,7 @@ function buildCourseImplicationSignature(course) {
     courseId: activeCourseId,
     series: currentSeries,
     windDirBucket: currentWindDir == null ? null : Math.round(currentWindDir / 8),
+    raceWindowTenths: Math.round(getActiveRaceWindowHours(course) * 10),
     legTypes: legs.map(leg => [leg.type, leg.poleLabel || '', Math.round(leg.bearing / 18)].join(':')),
     tide: currentTideState ? `${currentTideState.phase}:${calcTideStrengthBucket(currentTideState.strength)}` : 'none',
   });
@@ -2995,14 +3484,15 @@ function renderTactics(course, geometry = null) {
   const tacticCoords = geometry.animationCoords.length >= 2 ? geometry.animationCoords : geometry.lineCoords;
   const legs = buildLegsForTactics(tacticCoords, course);
   const now = new Date();
-  const raceHours = estimateRaceWindowHours(course);
+  const raceHours = getActiveRaceWindowHours(course);
+  const forecastHours = raceHours + 6;
   const forecastWindow = getForecastWindowSummary(raceHours);
   const raceEnd = new Date(now.getTime() + raceHours * 3600 * 1000);
   const windText = currentWindDir == null
     ? 'wind loading'
     : `${directionText(currentWindDir)} ${Math.round(currentWindDir)}° at ${currentWindSpeed.toFixed(1)}kn`;
 
-  tacticsMeta.textContent = `${ALL_SERIES[currentSeries].label} • ${course.dist} • using ~${raceHours.toFixed(1)}h race window`;
+  tacticsMeta.textContent = `${ALL_SERIES[currentSeries].label} • ${course.dist} • tactics use ${currentForecastModel || 'forecast'} + live tide model over ~${raceHours.toFixed(1)}h race window`;
 
   if (!legs.length) {
     tacticsSummary.textContent = 'Pick a course to get a short tactical note.';
@@ -3135,9 +3625,9 @@ function renderTactics(course, geometry = null) {
     const dirBit = forecastWindow.dirStart == null
       ? ''
       : forecastWindow.dirEnd != null && Math.abs(forecastWindow.dirDelta || 0) >= 8
-        ? `, holding ${directionText(forecastWindow.dirStart)} then trending to ${directionText(forecastWindow.dirEnd)}`
-        : `, holding around ${directionText(forecastWindow.dirStart)}`;
-    return `${range}${gustBit}${dirBit}`;
+        ? `, ${directionText(forecastWindow.dirStart)} trending to ${directionText(forecastWindow.dirEnd)}`
+        : `, around ${directionText(forecastWindow.dirStart)}`;
+    return `${range}${gustBit}${dirBit} in the ${raceHours.toFixed(1)}h race window`;
   })();
 
   const windMode = (leg) => {
@@ -3165,33 +3655,150 @@ function renderTactics(course, geometry = null) {
     const tideCross = tideDiff == null ? 0 : Math.sin(tideDiff * Math.PI / 180);
     const currentStrength = tide?.strength ?? 0;
     const currentConfidence = tide?.confidence ?? 0.4;
-    const tideImpact = currentStrength * (0.55 * Math.abs(tideAlong) + 0.75 * Math.abs(tideCross));
     const windBase = Math.max(windAvg, 0);
-    const windFactor = leg.type === 'upwind' ? 1.05 : leg.type === 'reach' ? 0.88 : 0.74;
-    const windImpact = (windBase / 18) * windFactor * (0.72 + Math.abs(Math.cos((leg.twa || 90) * Math.PI / 180)) * 0.28);
-    const dominant = tideImpact > windImpact * 1.15 ? 'current-dominant' : windImpact > tideImpact * 1.4 ? 'wind-dominant' : 'mixed wind/current';
+    const legLengthNm = leg.from && leg.to ? coordDistanceNm(leg.from, leg.to) : 0;
     const uncertainty = Math.max(0, 1 - ((currentConfidence + windConfidence) / 2));
     const cautious = uncertainty >= 0.35 || (tide?.minutesToNextTurn != null && Math.abs(tide.minutesToNextTurn) <= 90);
 
+    const windImportance = (() => {
+      if (leg.type === 'upwind') return 'high';
+      if (windBase >= 16) return 'high';
+      if (leg.type === 'reach' && windBase >= 9) return 'medium';
+      if (leg.type === 'run' && windBase < 8) return 'low';
+      return 'medium';
+    })();
+
     let currentEffect = 'low impact';
-    let impactStatement = 'minimal effect';
-    if (Math.abs(tideCross) >= 0.42 && Math.abs(tideCross) >= Math.abs(tideAlong)) {
-      currentEffect = 'cross-set / track-distorting';
-      impactStatement = leg.type === 'upwind'
-        ? 'changes layline and mark approach'
-        : leg.type === 'reach'
-          ? 'mainly pushes the boat sideways'
-          : 'changes distance over ground';
-    } else if (Math.abs(tideAlong) >= 0.32) {
+    if (currentStrength < 0.15 || (Math.abs(tideAlong) < 0.22 && Math.abs(tideCross) < 0.22)) {
+      currentEffect = 'low impact';
+    } else if (leg.type === 'reach' && Math.abs(tideCross) >= 0.38 && Math.abs(tideCross) >= Math.abs(tideAlong) * 0.95) {
+      currentEffect = 'mark-approach distortion';
+    } else if (leg.type === 'run' && Math.abs(tideCross) >= 0.34 && Math.abs(tideCross) >= Math.abs(tideAlong) * 0.9) {
+      currentEffect = 'layline distortion';
+    } else if (Math.abs(tideCross) >= 0.48 && Math.abs(tideCross) > Math.abs(tideAlong) * 1.18) {
+      currentEffect = 'cross-set';
+    } else if (Math.abs(tideAlong) >= 0.38 && Math.abs(tideAlong) >= Math.abs(tideCross)) {
       currentEffect = tideAlong > 0 ? 'favourable' : 'adverse';
-      impactStatement = 'changes VMG';
     }
 
-    let sideBias = null;
-    if (Math.abs(tideCross) >= 0.28 && currentStrength >= 0.22) {
-      sideBias = tideCross > 0 ? 'starboard side' : 'port side';
+    const tideImportance = (() => {
+      if (currentEffect === 'low impact' || currentStrength < 0.18) return 'low';
+      if (leg.type === 'upwind') {
+        if ((currentEffect === 'cross-set' && currentStrength >= 0.5 && windBase < 9) || (currentEffect === 'adverse' && currentStrength >= 0.55 && windBase < 8)) return 'high';
+        return 'medium';
+      }
+      if ((currentEffect === 'mark-approach distortion' || currentEffect === 'layline distortion' || currentEffect === 'cross-set') && currentStrength >= 0.32) return 'high';
+      if (currentStrength >= 0.24) return 'medium';
+      return 'low';
+    })();
+
+    let dominant = 'mixed wind/current';
+    if (windImportance === 'high' && tideImportance !== 'high') dominant = 'wind-dominant';
+    else if (windImportance === 'high' && tideImportance === 'high') dominant = 'mixed wind/current';
+    else if (windImportance === 'medium' && tideImportance === 'high') dominant = 'mixed wind/current';
+    else if (windImportance === 'low' && tideImportance === 'high') dominant = 'current-dominant';
+    else dominant = 'mixed wind/current';
+
+    if (leg.type === 'upwind' && windBase >= 9 && dominant === 'current-dominant') {
+      dominant = 'mixed wind/current';
     }
-    if (dominant === 'wind-dominant' && currentStrength < 0.35) sideBias = null;
+
+    const setTowards = tideCross > 0.22 ? 'port' : tideCross < -0.22 ? 'starboard' : null;
+    let cleanerSide = null;
+    if (leg.type === 'upwind' && currentEffect === 'cross-set' && dominant !== 'wind-dominant' && currentStrength >= 0.3) {
+      cleanerSide = setTowards === 'port' ? 'starboard' : setTowards === 'starboard' ? 'port' : null;
+    }
+
+    let call = 'Let wind decide';
+    let why = 'Wind should drive the main choice here, with tide only modifying the lane picture.';
+    let reasonDriver = 'wind-driven';
+    let callStrength = 'weak';
+
+    if (leg.type === 'upwind') {
+      if (dominant === 'wind-dominant') {
+        if (currentEffect === 'cross-set' && cleanerSide) {
+          call = `Slight preference for ${cleanerSide}`;
+          why = `Wind leads this beat, and ${tide?.phase === 'ebb' ? 'ebb' : 'flood'} compresses the ${setTowards} lane, so ${cleanerSide} may stay cleaner.`;
+          reasonDriver = 'combined';
+          callStrength = 'moderate';
+        } else if (currentEffect === 'adverse') {
+          call = 'Keep the beat compact';
+          why = 'Wind leads this beat, but adverse current still makes extra distance more expensive.';
+          reasonDriver = 'combined';
+          callStrength = 'moderate';
+        } else {
+          call = 'Let wind decide';
+          why = 'This is an upwind leg, so wind should make the main side call.';
+          reasonDriver = 'wind-driven';
+          callStrength = 'weak';
+        }
+      } else {
+        if (cleanerSide) {
+          call = `Lean ${cleanerSide}`;
+          why = `Wind is not decisive here, and ${tide?.phase === 'ebb' ? 'ebb' : 'flood'} changes lane compression enough that ${cleanerSide} may be cleaner if you can hold it.`;
+          reasonDriver = 'combined';
+          callStrength = 'moderate';
+        } else if (currentEffect === 'adverse') {
+          call = 'Keep the beat compact';
+          why = 'Wind and tide both matter here, but the adverse stream still punishes extra distance.';
+          reasonDriver = 'combined';
+          callStrength = 'moderate';
+        } else {
+          call = 'No strong side bias';
+          why = 'Wind and tide both matter here, but there is not enough support for a clear side call.';
+          reasonDriver = 'weak / low-confidence';
+          callStrength = 'weak';
+        }
+      }
+    } else if (leg.type === 'reach') {
+      if (tideImportance === 'high') {
+        call = 'Prioritise mark approach';
+        why = 'Current changes the reach geometry more than a clean left-right lane split.';
+        reasonDriver = 'tide-driven';
+        callStrength = 'strong';
+      } else if (currentEffect === 'adverse') {
+        call = 'Keep the reach compact';
+        why = 'Wind sets the mode, but the adverse stream still makes extra distance more expensive.';
+        reasonDriver = 'combined';
+        callStrength = 'moderate';
+      } else {
+        call = 'Choose based on mark approach';
+        why = 'Wind and tide both matter, but this reach does not show a reliable cleaner side.';
+        reasonDriver = 'weak / low-confidence';
+        callStrength = 'weak';
+      }
+    } else {
+      if (dominant === 'current-dominant') {
+        call = 'Minimise time in the foul stream';
+        why = 'Current changes distance over ground here more than small wind-angle differences.';
+        reasonDriver = 'tide-driven';
+        callStrength = 'strong';
+      } else if (currentEffect === 'layline distortion' || currentEffect === 'mark-approach distortion') {
+        call = 'Protect the finish approach';
+        why = 'Wind sets the running mode, but current is still distorting the final geometry.';
+        reasonDriver = 'combined';
+        callStrength = 'moderate';
+      } else if (currentEffect === 'favourable') {
+        call = 'Sail the fast line through the helping stream';
+        why = 'There is no strong side split, but the current still improves VMG on the better line.';
+        reasonDriver = 'combined';
+        callStrength = 'moderate';
+      } else if (currentEffect === 'adverse') {
+        call = 'Stay fast, but avoid extra time in the foul stream';
+        why = 'There is no strong side split, but current still affects distance over ground on this run.';
+        reasonDriver = 'combined';
+        callStrength = 'moderate';
+      } else {
+        call = 'Sail the fastest line';
+        why = 'Current effect is small here, so simple speed matters more than stream positioning.';
+        reasonDriver = 'wind-driven';
+        callStrength = 'weak';
+      }
+    }
+
+    if (cautious && !why.includes('Confidence is lower')) {
+      why = why.replace(/\.$/, '') + ' Confidence is lower near the tide turn.';
+    }
 
     return {
       ...leg,
@@ -3200,14 +3807,20 @@ function renderTactics(course, geometry = null) {
       tide,
       tideAlong,
       tideCross,
-      tideImpact,
-      windImpact,
+      windImportance,
+      tideImportance,
       dominant,
+      dominantLabel: dominant === 'wind-dominant' ? 'Wind matters most' : dominant === 'current-dominant' ? 'Tide matters most' : 'Mixed wind/current',
+      legLengthNm,
       uncertainty,
       cautious,
       currentEffect,
-      impactStatement,
-      sideBias,
+      setTowards,
+      cleanerSide,
+      call,
+      why,
+      reasonDriver,
+      callStrength,
       tideAngleText: tideBearing == null ? '—' : `${Math.round(Math.abs(tideDiff))}°`,
       tideStrengthText: tide ? `${Math.round(currentStrength * 100)}%` : '—',
       confidenceText: tide ? `${Math.round((tide.confidence || 0) * 100)}%` : '—',
@@ -3216,55 +3829,9 @@ function renderTactics(course, geometry = null) {
 
   const analysedLegs = legs.map(analyseLeg);
 
-  const softPrefix = (analysis) => analysis.cautious ? 'Slight edge, ' : '';
-  const buildLegCall = (analysis) => {
-    const mode = analysis.mode;
-    if (analysis.dominant === 'wind-dominant') {
-      if (analysis.type === 'upwind') {
-        return `${softPrefix(analysis)}Sail this as a ${mode}. Wind should drive the result, so prioritise pressure and clear lanes${shiftText ? `, with the ${shiftText} in mind` : ''}.`;
-      }
-      if (analysis.type === 'reach') {
-        return `${softPrefix(analysis)}Treat this as a wind-led ${mode}. Stay in the fast lane, because the tide is not strong enough to justify a big positioning call.`;
-      }
-      return `${softPrefix(analysis)}Keep this run VMG-focused. Wind matters more than current here, so do not overplay the tide.`;
-    }
+  const buildLegCall = (analysis) => `Call: ${analysis.call}`;
 
-    if (analysis.currentEffect === 'cross-set / track-distorting') {
-      if (analysis.type === 'reach') {
-        return `${softPrefix(analysis)}The main issue is cross-set on the reach, which will bend the layline and change the final approach. ${analysis.sideBias ? `The ${analysis.sideBias} is cleaner because ${analysis.sideBiasReason}.` : 'There is no reliable side edge, so protect the mark approach rather than forcing a side.'}`;
-      }
-      return `${softPrefix(analysis)}Cross-set is the main tactical factor here. ${analysis.sideBias ? `The ${analysis.sideBias} is cleaner because ${analysis.sideBiasReason}.` : 'There is no clear side edge, but expect laylines to move and the approach to skew.'}`;
-    }
-    if (analysis.currentEffect === 'favourable') {
-      return `${softPrefix(analysis)}There is some tide help on this leg, but it should support the wind call, not replace it. Stay fast and use the helping flow when it lines up.`;
-    }
-    if (analysis.currentEffect === 'adverse') {
-      return `${softPrefix(analysis)}This leg is into adverse current, so extra distance is expensive. Keep the leg compact and avoid low-value manoeuvres.`;
-    }
-    return `${softPrefix(analysis)}There is no clear side edge here. Let wind, pressure, and clean air drive the decision.`;
-  };
-
-  const buildLegWhy = (analysis) => {
-    const pieces = [];
-    if (analysis.tide) {
-      const tideStateText = analysis.tide.stage === 'peak'
-        ? 'current is near its strongest'
-        : analysis.tide.stage === 'building'
-          ? 'current is still strengthening'
-          : analysis.tide.stage === 'near-slack'
-            ? 'current is weak near slack'
-            : 'current is easing';
-      pieces.push(`${analysis.tide.phase === 'ebb' ? 'Ebb' : 'Flood'} set ${directionText(analysis.tide.vector?.bearing || 0)} and ${tideStateText}.`);
-      if (analysis.tide.minutesToNextTurn != null && Math.abs(analysis.tide.minutesToNextTurn) <= 90) {
-        pieces.push('The tide turn is fairly close, so this call has lower confidence.');
-      }
-    }
-    if (analysis.sideBiasReason) pieces.push(`Cause and effect: ${analysis.sideBiasReason}.`);
-    else if (analysis.currentEffect === 'cross-set / track-distorting') pieces.push('The set will distort the approach, but not enough to justify a confident side call.');
-    else if (analysis.currentEffect === 'low impact') pieces.push('Current effect is small, so the decision stays mostly wind-led.');
-    else pieces.push(`${analysis.currentEffect[0].toUpperCase() + analysis.currentEffect.slice(1)} current effect is present, but it is not the whole story.`);
-    return `Why: ${pieces.join(' ')}`;
-  };
+  const buildLegWhy = (analysis) => `Why: ${analysis.why}`;
 
   const overallImpact = (() => {
     const pieces = [];
@@ -3297,18 +3864,14 @@ function renderTactics(course, geometry = null) {
     }
 
     const markCoord = [geometry.firstRealMark.lat, geometry.firstRealMark.lng];
-    const midpoint = line.midpoint;
-    const linePerpA = normalizeAngle360(line.lineBearing - 90);
-    const linePerpB = normalizeAngle360(line.lineBearing + 90);
-    const upwindBearing = normalizeAngle360(currentWindDir);
-    const moreUpwindBearing = Math.abs(smallestAngleDiff(linePerpA, upwindBearing)) < Math.abs(smallestAngleDiff(linePerpB, upwindBearing)) ? linePerpA : linePerpB;
-    const committeeAdvance = Math.cos(smallestAngleDiff(bearingBetween(midpoint, line.committeeEnd), moreUpwindBearing) * Math.PI / 180) * coordDistanceNm(midpoint, line.committeeEnd);
-    const pinAdvance = Math.cos(smallestAngleDiff(bearingBetween(midpoint, line.pinEnd), moreUpwindBearing) * Math.PI / 180) * coordDistanceNm(midpoint, line.pinEnd);
-    const favouredEnd = Math.abs(committeeAdvance - pinAdvance) < 0.01
-      ? 'No strong bias'
-      : committeeAdvance > pinAdvance
-        ? `Committee boat end favoured by about ${Math.round(Math.abs(committeeAdvance - pinAdvance) * 60)}m`
-        : `Pin/buoy end favoured by about ${Math.round(Math.abs(committeeAdvance - pinAdvance) * 60)}m`;
+    const bias = calculateStartLineBias(line, currentWindDir);
+    const favouredEnd = !bias
+      ? 'Bias unavailable'
+      : bias.favored === 'square'
+        ? 'Start anywhere'
+        : bias.favored === 'committee'
+          ? `Committee boat end favoured by about ${bias.meters}m`
+          : `Pin/buoy end favoured by about ${bias.meters}m`;
 
     const earlyLeg = analysedLegs[0];
     const tacticalView = line.source === 'captured'
@@ -3329,28 +3892,33 @@ function renderTactics(course, geometry = null) {
 
     startlineSummary.style.display = 'block';
     startlineSummary.innerHTML = `
-      <div><strong>${line.source === 'captured' ? 'Captured start line' : 'Estimated start line'}</strong></div>
-      <div><strong>Line bias:</strong> ${line.source === 'captured' ? favouredEnd : 'No strong bias shown on estimated line'}</div>
-      <div><strong>Tactical view:</strong> ${tacticalView}</div>
-      <div><strong>Why:</strong> ${why}</div>
+      <div class="startline-row"><div class="startline-label">Start</div><div class="startline-value"><strong>${line.source === 'captured' ? 'Captured start line' : 'Estimated start line'}</strong></div></div>
+      <div class="startline-row"><div class="startline-label">Bias</div><div class="startline-value">${line.source === 'captured' ? favouredEnd : 'No strong bias shown on estimated line'}</div></div>
+      ${line.source === 'captured' && bias ? `<div class="startline-row"><div class="startline-label">Call</div><div class="startline-value">${bias.shortLabel}</div></div>` : ''}
+      <div class="startline-row"><div class="startline-label">View</div><div class="startline-value">${tacticalView}</div></div>
+      <div class="startline-row"><div class="startline-label">Why</div><div class="startline-value">${why}</div></div>
     `;
   })();
 
   tacticsSummary.innerHTML = `
-    <div><strong>Tide:</strong> ${tideRaceView}</div>
-    <div><strong>Wind:</strong> ${windRaceView} to about ${formatTime(raceEnd)}.</div>
-    <div><strong>Read:</strong> ${overallImpact || 'Waiting for a cleaner read.'}</div>
+    <div class="summary-row"><div class="summary-label">Tide</div><div class="summary-value">${tideRaceView}</div></div>
+    <div class="summary-row"><div class="summary-label">Wind</div><div class="summary-value">${windRaceView} to about ${formatTime(raceEnd)}.</div></div>
+    <div class="summary-row"><div class="summary-label">Read</div><div class="summary-value">${overallImpact || 'Waiting for a cleaner read.'}</div></div>
   `;
 
   tacticsList.innerHTML = analysedLegs.slice(0, 8).map((analysis, index) => {
     const target = BUOYS[analysis.toWp?.m]?.label || `leg ${index + 1}`;
     const mode = analysis.type === 'upwind' ? 'Upwind' : analysis.type === 'reach' ? 'Reach' : 'Run';
-    const factorMeta = ` · ${analysis.dominant}`;
     return `
       <div class="tactic-item">
-        <strong>Leg ${index + 1} – ${mode} to ${target}${factorMeta}</strong>
-        <span>${buildLegCall(analysis)}</span>
-        <span>${buildLegWhy(analysis)}</span>
+        <strong>Leg ${index + 1} – ${mode} to ${target}</strong>
+        <div class="tactic-submeta">
+          <span>${analysis.legLengthNm.toFixed(1)} NM</span>
+          <span class="tactic-chip">${analysis.reasonDriver}</span>
+        </div>
+        <span class="tactic-focus"><strong>Focus:</strong> ${analysis.dominantLabel}</span>
+        <span class="tactic-call"><strong>Call:</strong> ${analysis.call}</span>
+        <span class="tactic-why"><strong>Why:</strong> ${analysis.why}</span>
       </div>
     `;
   }).join('');
@@ -3420,18 +3988,21 @@ function selectCourse(id, options = {}) {
   document.getElementById('active-course-dist').textContent = course.dist;
   document.getElementById('active-course-wps').innerHTML = buildRouteHTML(course.waypoints);
   renderTactics(course, geometry);
+  refreshCourseDependentData(course, { skipForecast: true, skipTides: true, skipTactics: true });
 
   const baseColor = currentWindDir !== null ? 'rgba(120,130,150,0.46)' : '#2ea3f2';
   const finishDraw = () => {
     if (geometry.lineCoords.length >= 2) {
-      coursePolyline = L.polyline(geometry.lineCoords, {
-        color: baseColor,
-        weight: 3,
-        opacity: 0.85,
-        dashArray: '8, 4',
-        lineCap: 'round',
-        lineJoin: 'round',
-      }).addTo(map);
+      if (!options.autoRedraw) {
+        coursePolyline = L.polyline(geometry.lineCoords, {
+          color: baseColor,
+          weight: 3,
+          opacity: 0.85,
+          dashArray: '8, 4',
+          lineCap: 'round',
+          lineJoin: 'round',
+        }).addTo(map);
+      }
       addArrowsAndLegColour(geometry.lineCoords, currentWindDir);
     }
 
@@ -3518,6 +4089,7 @@ function selectCourse(id, options = {}) {
       map.fitBounds(L.latLngBounds(allCoords), { paddingTopLeft: [80, 80], paddingBottomRight: [80, 80] });
     }
 
+    updateStartCaptureButtonState();
     lastCourseImplicationSignature = buildCourseImplicationSignature(course);
     if (options.reason) showCourseRefreshNote(options.reason);
   };
@@ -3582,6 +4154,11 @@ function switchSeries(seriesKey) {
 // Init wind animation overlay (must happen after all wind vars/functions exist)
 initWindAnimation();
 ensureUserLocationWatch(false);
+fetchForecastChart();
+fetchLiveConditions();
+setInterval(fetchWeather, 300000);
+setInterval(computeTides, 300000);
+computeTides();
 
 // Build initial course list and default selection
 buildCourseList('midweek');
